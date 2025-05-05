@@ -1,0 +1,72 @@
+# === Python ===
+__pycache__/
+*.py[cod]
+*.so
+*.pyd
+*.egg-info/
+build/
+dist/
+
+# === Jupyter Notebooks ===
+*.ipynb
+notebooks/
+
+# === Secrets / Clés API / Configurations sensibles ===
+config/api_keys.py
+config/secrets.env*
+config/trading_live.yaml
+config/config.yaml
+*.env
+
+# === Datasets et données lourdes ===
+data/
+!data/__init__.py # Permet d'inclure le __init__.py si nécessaire
+backup/
+*.parquet
+*.csv
+*.npz
+*.pkl
+*.json # Exclure les fichiers JSON en général, sauf si certains sont nécessaires
+
+# === Logs et historiques ===
+logs/
+model/**/logs/
+*.log
+*.txt # Exclure les fichiers txt génériques, ajuster si nécessaire
+
+# === TensorBoard ===
+logs/tensorboard_logs/
+logs/fit/
+
+# === Modèles enregistrés ===
+checkpoints/
+model/trained/
+models/
+**/saved_model.pb
+**/keras_metadata.pb
+**/fingerprint.pb
+**/variables/
+**/*.h5
+**/*.ckpt
+
+# === Fichiers temporaires / systèmes ===
+*.DS_Store
+*.swp
+*.tmp
+*.bak
+.coverage
+
+# === Fichiers exécutables / binaires ===
+*.exe
+*.out
+*.dll
+
+# === Fichiers spécifiques à exclure (demandé par l'utilisateur) ===
+# Note: Exclure des objets Git internes n'est généralement pas recommandé.
+# .git/objects/pack/pack-df56b9e1cf925b6cdf9d8df87fb8b2de2a75eace.pack
+logs/archives/data_pipeline.log
+
+# === Dépendances et environnements virtuels ===
+venv/
+env/
+.venv/

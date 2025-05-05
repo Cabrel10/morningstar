@@ -1,0 +1,192 @@
+[
+  {
+    "sample_idx": 11842,
+    "input_data": {
+      "symbol": "ETH",
+      "close": 0.24151208958775433,
+      "RSI": 0.29612575872334196,
+      "MACD": -0.18825882315895504,
+      "hmm_regime": 2
+    },
+    "explanation": {
+      "symbol": "ETH",
+      "price": 0.24151208958775433,
+      "signal": "CONSERVER",
+      "reasoning": "Le marchu00e9 est dans un ru00e9gime baissier (ru00e9gime 2), caractu00e9risu00e9 par une tendance u00e0 la baisse et une volatilitu00e9 u00e9levu00e9e. Le RSI est bas (0.30), indiquant une condition de survente potentielle. Le MACD est nu00e9gatif (-0.19), suggu00e9rant une tendance baissi\u00e8re. Les conditions actuelles du marchu00e9 ne justifient pas une action d'achat ou de vente.",
+      "stop_loss": 0,
+      "take_profit": 0,
+      "confidence": 0.7574792775329393
+    }
+  },
+  {
+    "sample_idx": 13397,
+    "input_data": {
+      "symbol": "ETH",
+      "close": -0.5323154880497547,
+      "RSI": -0.3548504053468505,
+      "MACD": -0.012108748223088883,
+      "hmm_regime": 1
+    },
+    "explanation": {
+      "symbol": "ETH",
+      "price": -0.5323154880497547,
+      "signal": "CONSERVER",
+      "reasoning": "Le marchu00e9 est dans un ru00e9gime haussier (ru00e9gime 1), caractu00e9risu00e9 par une tendance u00e0 la hausse et une volatilitu00e9 modu00e9ru00e9e. Le RSI est bas (-0.35), indiquant une condition de survente potentielle. Le MACD est nu00e9gatif (-0.01), suggu00e9rant une tendance baissi\u00e8re. Les conditions actuelles du marchu00e9 ne justifient pas une action d'achat ou de vente.",
+      "stop_loss": 0,
+      "take_profit": 0,
+      "confidence": 0.717628726116458
+    }
+  },
+  {
+    "sample_idx": 1768,
+    "input_data": {
+      "symbol": "ETH",
+      "close": 1.720650969922549,
+      "RSI": 2.233240640718417,
+      "MACD": 1.1238659177577661,
+      "hmm_regime": 2
+    },
+    "explanation": {
+      "symbol": "ETH",
+      "price": 1.720650969922549,
+      "signal": "CONSERVER",
+      "reasoning": "Le marchu00e9 est dans un ru00e9gime baissier (ru00e9gime 2), caractu00e9risu00e9 par une tendance u00e0 la baisse et une volatilitu00e9 u00e9levu00e9e. Le RSI est bas (2.23), indiquant une condition de survente potentielle. Le MACD est positif (1.12), suggu00e9rant une tendance haussi\u00e8re. Les conditions actuelles du marchu00e9 ne justifient pas une action d'achat ou de vente.",
+      "stop_loss": 0,
+      "take_profit": 0,
+      "confidence": 0.7786769072122484
+    }
+  },
+  {
+    "sample_idx": 12519,
+    "input_data": {
+      "symbol": "ETH",
+      "close": -0.2210865302723157,
+      "RSI": -0.4134912277654602,
+      "MACD": -0.33882017423215044,
+      "hmm_regime": 0
+    },
+    "explanation": {
+      "symbol": "ETH",
+      "price": -0.2210865302723157,
+      "signal": "CONSERVER",
+      "reasoning": "Le marchu00e9 est dans un ru00e9gime de faible volatilitu00e9 (ru00e9gime 0), ce qui suggu00e8re une phase de consolidation. Le RSI est bas (-0.41), indiquant une condition de survente potentielle. Le MACD est nu00e9gatif (-0.34), suggu00e9rant une tendance baissi\u00e8re. Les conditions actuelles du marchu00e9 ne justifient pas une action d'achat ou de vente.",
+      "stop_loss": 0,
+      "take_profit": 0,
+      "confidence": 0.7824545470626605
+    }
+  },
+  {
+    "sample_idx": 19544,
+    "input_data": {
+      "symbol": "ETH",
+      "close": -0.8990480338374821,
+      "RSI": -0.9781026693249153,
+      "MACD": 0.341942301537046,
+      "hmm_regime": 0
+    },
+    "explanation": {
+      "symbol": "ETH",
+      "price": -0.8990480338374821,
+      "signal": "CONSERVER",
+      "reasoning": "Le marchu00e9 est dans un ru00e9gime de faible volatilitu00e9 (ru00e9gime 0), ce qui suggu00e8re une phase de consolidation. Le RSI est bas (-0.98), indiquant une condition de survente potentielle. Le MACD est positif (0.34), suggu00e9rant une tendance haussi\u00e8re. Les conditions actuelles du marchu00e9 ne justifient pas une action d'achat ou de vente.",
+      "stop_loss": 0,
+      "take_profit": 0,
+      "confidence": 0.7999702123490983
+    }
+  },
+  {
+    "sample_idx": 7993,
+    "input_data": {
+      "symbol": "ETH",
+      "close": -0.3409163449208378,
+      "RSI": -0.14908724531840048,
+      "MACD": -0.9069472432878843,
+      "hmm_regime": 1
+    },
+    "explanation": {
+      "symbol": "ETH",
+      "price": -0.3409163449208378,
+      "signal": "CONSERVER",
+      "reasoning": "Le marchu00e9 est dans un ru00e9gime haussier (ru00e9gime 1), caractu00e9risu00e9 par une tendance u00e0 la hausse et une volatilitu00e9 modu00e9ru00e9e. Le RSI est bas (-0.15), indiquant une condition de survente potentielle. Le MACD est nu00e9gatif (-0.91), suggu00e9rant une tendance baissi\u00e8re. Les conditions actuelles du marchu00e9 ne justifient pas une action d'achat ou de vente.",
+      "stop_loss": 0,
+      "take_profit": 0,
+      "confidence": 0.8293534591242078
+    }
+  },
+  {
+    "sample_idx": 9381,
+    "input_data": {
+      "symbol": "ETH",
+      "close": -0.689143886643456,
+      "RSI": -0.9731763395074557,
+      "MACD": -0.8999877377894475,
+      "hmm_regime": 1
+    },
+    "explanation": {
+      "symbol": "ETH",
+      "price": -0.689143886643456,
+      "signal": "CONSERVER",
+      "reasoning": "Le marchu00e9 est dans un ru00e9gime haussier (ru00e9gime 1), caractu00e9risu00e9 par une tendance u00e0 la hausse et une volatilitu00e9 modu00e9ru00e9e. Le RSI est bas (-0.97), indiquant une condition de survente potentielle. Le MACD est nu00e9gatif (-0.90), suggu00e9rant une tendance baissi\u00e8re. Les conditions actuelles du marchu00e9 ne justifient pas une action d'achat ou de vente.",
+      "stop_loss": 0,
+      "take_profit": 0,
+      "confidence": 0.9268055033307778
+    }
+  },
+  {
+    "sample_idx": 2748,
+    "input_data": {
+      "symbol": "ETH",
+      "close": -1.0775944785946006,
+      "RSI": -1.3460221961901326,
+      "MACD": -0.4461419307761102,
+      "hmm_regime": 0
+    },
+    "explanation": {
+      "symbol": "ETH",
+      "price": -1.0775944785946006,
+      "signal": "CONSERVER",
+      "reasoning": "Le marchu00e9 est dans un ru00e9gime de faible volatilitu00e9 (ru00e9gime 0), ce qui suggu00e8re une phase de consolidation. Le RSI est bas (-1.35), indiquant une condition de survente potentielle. Le MACD est nu00e9gatif (-0.45), suggu00e9rant une tendance baissi\u00e8re. Les conditions actuelles du marchu00e9 ne justifient pas une action d'achat ou de vente.",
+      "stop_loss": 0,
+      "take_profit": 0,
+      "confidence": 0.915763584822981
+    }
+  },
+  {
+    "sample_idx": 19815,
+    "input_data": {
+      "symbol": "ETH",
+      "close": -1.8347100325990235,
+      "RSI": -1.6596930394255442,
+      "MACD": -1.070303903755277,
+      "hmm_regime": 0
+    },
+    "explanation": {
+      "symbol": "ETH",
+      "price": -1.8347100325990235,
+      "signal": "CONSERVER",
+      "reasoning": "Le marchu00e9 est dans un ru00e9gime de faible volatilitu00e9 (ru00e9gime 0), ce qui suggu00e8re une phase de consolidation. Le RSI est bas (-1.66), indiquant une condition de survente potentielle. Le MACD est nu00e9gatif (-1.07), suggu00e9rant une tendance baissi\u00e8re. Les conditions actuelles du marchu00e9 ne justifient pas une action d'achat ou de vente.",
+      "stop_loss": 0,
+      "take_profit": 0,
+      "confidence": 0.881652284463616
+    }
+  },
+  {
+    "sample_idx": 7499,
+    "input_data": {
+      "symbol": "ETH",
+      "close": -0.2127588437399876,
+      "RSI": -0.4513535545655797,
+      "MACD": 0.4006249553463,
+      "hmm_regime": 2
+    },
+    "explanation": {
+      "symbol": "ETH",
+      "price": -0.2127588437399876,
+      "signal": "CONSERVER",
+      "reasoning": "Le marchu00e9 est dans un ru00e9gime baissier (ru00e9gime 2), caractu00e9risu00e9 par une tendance u00e0 la baisse et une volatilitu00e9 u00e9levu00e9e. Le RSI est bas (-0.45), indiquant une condition de survente potentielle. Le MACD est positif (0.40), suggu00e9rant une tendance haussi\u00e8re. Les conditions actuelles du marchu00e9 ne justifient pas une action d'achat ou de vente.",
+      "stop_loss": 0,
+      "take_profit": 0,
+      "confidence": 0.7028726797561371
+    }
+  }
+]

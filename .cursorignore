@@ -1,0 +1,38 @@
+# Fichiers et répertoires à ignorer pour l'indexation par Cursor
+
+# Ignorer les caches Python
+**/__pycache__/
+**/*.pyc
+
+# Ignorer les dossiers de logs
+logs/
+**/tensorboard_logs/
+
+# Ignorer les fichiers générés et temporaires
+Morningstar.egg-info/
+temp.json
+tf_deps.txt
+trading_deps.txt
+trading_env_deps.txt
+
+# Ignorer les caches de données (générés automatiquement)
+data/llm_cache/
+data/mcp_cache/
+
+# Ignorer les fichiers de données générés (CSV, Parquet)
+**/*.csv
+**/*.parquet
+
+# Ignorer les dossiers non essentiels à l'analyse du code source
+Morningstar
+notebooks
+traning
+model
+live
+
+{
+ "**/node_modules/**":true,
+ "**/.git/**":true
+
+
+}

@@ -1,0 +1,30 @@
+{
+  "Meme Coins & Culture Crypto": {
+    "DOGE": {
+      "name": "Dogecoin",
+      "description": "Meme coin originel",
+      "consensus": "Proof-of-Work (PoW) Scrypt",
+      "tokenomics": "Offre non plafonnée"
+    },
+    "SHIB": {
+      "name": "Shiba Inu",
+      "description": "Token ERC-20",
+      "consensus": "N/A (ERC-20 sur Ethereum)",
+      "tokenomics": "Offre initiale 1 quadrillion"
+    }
+  },
+  "Storage & Calcul Distribué": {
+    "FIL": {
+      "name": "Filecoin",
+      "description": "Réseau de stockage décentralisé",
+      "consensus": "Proof-of-Replication (PoRep)",
+      "tokenomics": "Offre maximale 2 milliards FIL"
+    },
+    "AR": {
+      "name": "Arweave",
+      "description": "Protocole de stockage décentralisé",
+      "consensus": "Proof-of-Access (PoA)",
+      "tokenomics": "Offre maximale 66 millions AR"
+    }
+  }
+} 

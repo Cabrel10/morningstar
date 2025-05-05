@@ -1,0 +1,59 @@
+# Requirements pour le système Morningstar
+
+## Core Dependencies
+numpy>=1.22.0
+pandas>=1.5.0
+tensorflow>=2.12.0
+python-dotenv>=0.19.0
+pyyaml>=6.0
+scikit-learn>=1.0.0
+transformers>=4.30.0 # Pour les modèles LLM (ex: cryptobert)
+torch>=2.0.0 # Pour les embeddings CryptoBERT
+
+## API et Connecteurs
+ccxt>=3.0.0  # Pour la connexion aux exchanges
+requests>=2.28.0  # Pour les appels API
+websocket-client>=1.3.0  # Pour les connexions websocket aux exchanges
+beautifulsoup4>=4.10.0
+lxml>=4.9.0
+
+## Trading et Backtesting
+backtrader>=1.9.76.123  # Pour le backtesting
+ta-lib>=0.4.24  # Pour les indicateurs techniques (optionnel)
+pandas-ta>=0.3.14b0  # Alternative à ta-lib
+joblib>=1.2.0  # Pour la sauvegarde/chargement des modèles
+deap>=1.3.1
+imblearn>=0.0.0
+
+## Analyse de Données
+matplotlib>=3.5.0  # Pour les visualisations
+seaborn>=0.12.0  # Pour les visualisations avancées
+pyarrow>=6.0.0  # Pour le format parquet
+pytz>=2021.3  # Pour la gestion des fuseaux horaires
+
+## Logging et Monitoring
+loguru>=0.6.0  # Pour une journalisation avancée
+prometheus-client>=0.14.0 # Pour exposer les métriques
+pytest>=7.0.0  # Pour les tests
+
+## Tests et Validation
+pytest-mock>=3.7.0  # Pour les mocks dans les tests
+pytest-cov>=3.0.0  # Pour le coverage des tests
+
+## Développement
+black>=22.0  # Formattage du code
+flake8>=4.0.0  # Linting
+mypy>=0.910  # Vérification des types
+typer[all]>=0.9.0 # Pour la CLI interactive (inclut rich)
+python-dateutil>=2.8.0 # Pour parser les dates dans la CLI
+questionary>=2.0.0 # Pour les menus interactifs
+
+## Documentation
+mkdocs>=1.2.0  # Pour la documentation
+mkdocs-material>=8.0.0  # Thème pour la doc
+
+## Spécifique au Workflow
+tqdm>=4.65.0  # Pour les barres de progression
+hmmlearn>=0.2.8  # Pour les modèles HMM (régimes de marché)
+requests-cache>=1.0.0
+google-genai>=0.1.0

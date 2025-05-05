@@ -1,0 +1,77 @@
+{
+    "dataset_dimensions": {
+        "tech_dim": 21,
+        "llm_dim": 10,
+        "mcp_dim": 2,
+        "hmm_dim": 1
+    },
+    "model_expected_dimensions": {
+        "tech_dim": 38,
+        "llm_dim": 768,
+        "mcp_dim": 128,
+        "hmm_dim": 4
+    },
+    "compatibility": {
+        "tech_compatible": false,
+        "llm_compatible": false,
+        "mcp_compatible": true,
+        "hmm_compatible": true,
+        "overall_compatible": false
+    },
+    "adjustments_needed": {
+        "tech_adjustment": "Ajuster tech_input_shape=(21,)",
+        "llm_adjustment": "Ajuster llm_embedding_dim=10",
+        "mcp_adjustment": null,
+        "hmm_adjustment": null
+    },
+    "column_groups": {
+        "technical_columns": [
+            "open",
+            "high",
+            "low",
+            "close",
+            "volume",
+            "sma_5",
+            "sma_10",
+            "sma_20",
+            "sma_50",
+            "sma_100",
+            "sma_200",
+            "ema_5",
+            "ema_10",
+            "ema_20",
+            "ema_50",
+            "ema_100",
+            "ema_200",
+            "rsi_14",
+            "macd_signal",
+            "macd_hist",
+            "atr_14"
+        ],
+        "cryptobert_columns": [
+            "cryptobert_dim_0",
+            "cryptobert_dim_1",
+            "cryptobert_dim_2",
+            "cryptobert_dim_3",
+            "cryptobert_dim_4",
+            "cryptobert_dim_5",
+            "cryptobert_dim_6",
+            "cryptobert_dim_7",
+            "cryptobert_dim_8",
+            "cryptobert_dim_9"
+        ],
+        "sentiment_columns": [
+            "sentiment_score"
+        ],
+        "hmm_columns": [
+            "hmm_regime"
+        ],
+        "market_columns": [
+            "market_regime"
+        ],
+        "global_columns": [],
+        "mcp_columns": [
+            "market_regime"
+        ]
+    }
+}

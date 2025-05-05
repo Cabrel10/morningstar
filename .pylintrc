@@ -1,0 +1,13 @@
+[MASTER]
+ignore=CVS
+load-plugins=pylint.extensions.mccabe
+
+[MESSAGES CONTROL]
+disable=
+    C0111,  # missing-docstring
+    C0103,  # invalid-name
+    R0903,  # too-few-public-methods
+    R0913   # too-many-arguments
+
+[FORMAT]
+max-line-length=120

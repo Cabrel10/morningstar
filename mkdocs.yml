@@ -1,0 +1,19 @@
+site_name: "Morningstar Documentation"
+theme:
+  name: material
+  palette:
+    primary: blue
+    accent: orange
+nav:
+  - Accueil: index.md
+  - Installation & Pré-requis: installation.md
+  - Utilisation Streamlit: streamlit.md
+  - Utilisation CLI: cli.md
+  - Fonctionnalités avancées: advanced.md
+  - FAQ & Dépannage: faq.md
+  - Ressources: ressources.md
+markdown_extensions:
+  - admonition
+  - codehilite
+  - toc:
+      permalink: true

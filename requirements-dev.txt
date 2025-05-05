@@ -1,0 +1,4 @@
+# Outils de qualité de code et tests
+pylint>=3.0.0  # Analyse statique du code
+black>=23.0.0  # Formattage automatique
+pytest>=7.0.0  # Framework de tests

@@ -1,0 +1,6 @@
+keras=2.12.0=pypi_0
+numpy=2.2.5=pypi_0
+protobuf=4.25.6=pypi_0
+tensorflow=2.12.0=pypi_0
+tensorflow-estimator=2.12.0=pypi_0
+tensorflow-io-gcs-filesystem=0.37.1=pypi_0
