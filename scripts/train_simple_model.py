@@ -183,7 +183,7 @@ def build_simple_model(input_dim):
     regime_output = tf.keras.layers.Dense(4, activation='softmax', name='regime')(shared)  # 4 régimes de marché
     
     # Créer le modèle
-    model = tf.keras.Model(inputs=inputs, outputs=[signal_output, regime_output], name='morningstar_simple_model')
+    model = tf.keras.Model(inputs=inputs, outputs=[signal_output, regime_output], name='morningstar')
     
     # Compiler le modèle
     model.compile(
@@ -276,18 +276,18 @@ def save_model(model, output_dir, features):
     output_path.mkdir(parents=True, exist_ok=True)
     
     # Sauvegarder le modèle au format SavedModel
-    model_path = output_path / "simple_model"
+    model_path = output_path / "morningstar"
     model.save(model_path)
     logger.info(f"Modèle sauvegardé dans {model_path}")
     
     # Sauvegarder également au format H5 pour compatibilité
-    h5_path = output_path / "simple_model.h5"
+    h5_path = output_path / "morningstar.h5"
     model.save(h5_path)
     logger.info(f"Modèle sauvegardé au format H5 dans {h5_path}")
     
     # Sauvegarder les métadonnées du modèle
     metadata = {
-        "model_name": "morningstar_simple_model",
+        "model_name": "morningstar",
         "creation_date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "input_features": features,
         "output_classes": {

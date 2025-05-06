@@ -1,7 +1,8 @@
 from typing import Tuple, Dict, Optional, List
 import tensorflow as tf
 from tensorflow.keras.layers import (
-    Input, Dense, Concatenate, Dropout, BatchNormalization, Embedding, Flatten, Layer
+    Input, Dense, Concatenate, Dropout, BatchNormalization, Embedding, Flatten, Layer,
+    Conv1D, MaxPooling1D, LSTM, Reshape, TimeDistributed, Bidirectional
 )
 from tensorflow.keras.models import Model
 from tensorflow.keras import regularizers
@@ -85,7 +86,19 @@ def build_enhanced_hybrid_model(
     sl_tp_initial_bias: Optional[List[float]] = None, # Initialisation personnalisée du biais SL/TP
     active_outputs: List[str] = None, # Liste des noms des sorties à activer
     use_llm: bool = True, # Indique si les données LLM sont disponibles
-    llm_fallback_strategy: str = 'zero_vector' # Stratégie de fallback pour LLM: 'zero_vector', 'learned_embedding', 'technical_projection'
+    llm_fallback_strategy: str = 'zero_vector', # Stratégie de fallback pour LLM: 'zero_vector', 'learned_embedding', 'technical_projection'
+    
+    # Paramètres pour le traitement CNN+LSTM
+    use_cnn_lstm: bool = True,  # Activer/désactiver les couches CNN+LSTM
+    time_steps: int = 10,       # Nombre d'étapes temporelles pour les données techniques
+    tech_features: int = None,  # Nombre de features techniques par pas de temps (calculé automatiquement si None)
+    cnn_filters: List[int] = [32, 64],  # Nombre de filtres pour chaque couche CNN
+    cnn_kernel_sizes: List[int] = [3, 3],  # Tailles des noyaux pour chaque couche CNN
+    cnn_pool_sizes: List[int] = [2, 2],  # Tailles des pooling pour chaque couche CNN
+    lstm_units: List[int] = [64],  # Nombre d'unités pour chaque couche LSTM
+    bidirectional_lstm: bool = True,  # Utiliser des LSTM bidirectionnels
+    cnn_dropout_rate: float = 0.2,  # Taux de dropout pour les couches CNN
+    lstm_dropout_rate: float = 0.2   # Taux de dropout pour les couches LSTM
 ) -> Model:
     """
     Construit le modèle hybride amélioré avec entrées Tech, LLM, MCP et Instrument,
@@ -157,8 +170,52 @@ def build_enhanced_hybrid_model(
         """
         return x
 
-    # 1. Encodeur Technique
-    tech_encoded = create_encoder(tech_input, 64, "tech") # Sortie: (B, 32)
+    # 1. Encodeur Technique (CNN+LSTM ou Dense)
+    if use_cnn_lstm:
+        # Déterminer le nombre de features par pas de temps
+        if tech_features is None:
+            tech_features = tech_input_shape[0] // time_steps
+            if tech_input_shape[0] % time_steps != 0:
+                raise ValueError(f"La dimension d'entrée technique {tech_input_shape[0]} n'est pas divisible par time_steps {time_steps}")
+        
+        # Réorganiser les données d'entrée de [batch, features] en [batch, time_steps, features_per_step]
+        # Exemple: [batch, 60] -> [batch, 10, 6] pour 10 pas de temps et 6 features par pas
+        reshaped_tech = Reshape((time_steps, tech_features), name='tech_reshape')(tech_input)
+        
+        # Application des couches CNN pour extraire des motifs locaux
+        x = reshaped_tech
+        for i, (filters, kernel_size, pool_size) in enumerate(zip(cnn_filters, cnn_kernel_sizes, cnn_pool_sizes)):
+            # Couche Conv1D avec BatchNorm et Dropout
+            x = Conv1D(filters=filters, kernel_size=kernel_size, activation='relu', padding='same',
+                      name=f'cnn_conv_{i+1}')(x)
+            x = BatchNormalization(name=f'cnn_bn_{i+1}')(x)
+            x = Dropout(cnn_dropout_rate, name=f'cnn_dropout_{i+1}')(x)
+            
+            # MaxPooling pour réduire la dimensionnalité et extraire les caractéristiques importantes
+            x = MaxPooling1D(pool_size=pool_size, padding='same', name=f'cnn_pool_{i+1}')(x)
+        
+        # Application des couches LSTM pour capturer les dépendances temporelles
+        for i, units in enumerate(lstm_units):
+            return_sequences = i < len(lstm_units) - 1  # True pour toutes sauf la dernière couche
+            
+            # Couche LSTM (bidirectionnelle ou non)
+            if bidirectional_lstm:
+                x = Bidirectional(LSTM(units, return_sequences=return_sequences,
+                                     recurrent_dropout=lstm_dropout_rate,
+                                     name=f'lstm_{i+1}'), name=f'bidirectional_lstm_{i+1}')(x)
+            else:
+                x = LSTM(units, return_sequences=return_sequences,
+                       recurrent_dropout=lstm_dropout_rate,
+                       name=f'lstm_{i+1}')(x)
+            
+            x = BatchNormalization(name=f'lstm_bn_{i+1}')(x)
+            x = Dropout(lstm_dropout_rate, name=f'lstm_dropout_{i+1}')(x)
+        
+        # Le résultat est notre représentation technique encodée
+        tech_encoded = x
+    else:
+        # Utiliser l'encodeur standard si CNN+LSTM n'est pas activé
+        tech_encoded = create_encoder(tech_input, 64, "tech") # Sortie: (B, 32)
 
     # 2. Encodeur LLM avec stratégies de fallback
     if use_llm:
