@@ -292,31 +292,44 @@ def create_rl_agent(hyperparams, env, output_dir):
     learning_rate = float(hyperparams.get('learning_rate', 0.0003))
     gamma = float(hyperparams.get('gamma', 0.99))
     gae_lambda = float(hyperparams.get('gae_lambda', 0.95))
-    ent_coef = float(hyperparams.get('ent_coef', 0.01))
-    vf_coef = float(hyperparams.get('vf_coef', 0.5))
-    max_grad_norm = float(hyperparams.get('max_grad_norm', 0.5))
     batch_size = int(hyperparams.get('batch_size', 64))
     n_steps = int(hyperparams.get('n_steps', 2048))
     n_epochs = int(hyperparams.get('n_epochs', 10))
     clip_range = float(hyperparams.get('clip_range', 0.2))
     
+    # Extraire les hyperparamètres du modèle hybride
+    cnn_filters = int(hyperparams.get('cnn_filters', 64))
+    cnn_kernel_size = int(hyperparams.get('cnn_kernel_size', 3))
+    lstm_units = int(hyperparams.get('lstm_units', 128))
+    dropout_rate = float(hyperparams.get('dropout_rate', 0.2))
+    
+    # Configurer les paramètres de la politique
+    policy_kwargs = {
+        'use_cnn_lstm': True,
+        'use_cot': True,
+        'net_arch': {
+            'cnn_filters': cnn_filters,
+            'cnn_kernel_size': cnn_kernel_size,
+            'lstm_units': lstm_units,
+            'dropout_rate': dropout_rate
+        }
+    }
+    
     # Créer l'agent RL
     agent = RLAgent(
-        env=env,
-        model_name="PPO",
-        policy="MlpPolicy",
         learning_rate=learning_rate,
+        n_steps=n_steps,
+        batch_size=batch_size,
+        n_epochs=n_epochs,
         gamma=gamma,
         gae_lambda=gae_lambda,
-        ent_coef=ent_coef,
-        vf_coef=vf_coef,
-        max_grad_norm=max_grad_norm,
-        batch_size=batch_size,
-        n_steps=n_steps,
-        n_epochs=n_epochs,
         clip_range=clip_range,
+        policy_kwargs=policy_kwargs,
         tensorboard_log=os.path.join(output_dir, 'tensorboard')
     )
+    
+    # Initialiser l'agent avec l'environnement
+    agent.create_agent(env)
     
     return agent
 

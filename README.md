@@ -1,26 +1,41 @@
-# Morningstar: Système de Trading Crypto avec Capacité de Raisonnement
+# Morningstar: Système de Trading Crypto avec Framework DECoT-RL-GA
 
-Morningstar est un système avancé de trading de crypto-monnaies qui combine l'analyse technique, l'analyse de sentiment et l'apprentissage automatique avec une capacité de raisonnement pour expliquer ses décisions de trading.
+Morningstar est un système avancé de trading de crypto-monnaies qui implémente le framework DECoT-RL-GA (Deep Extraction with Chain-of-Thought, Reinforcement Learning, and Genetic Algorithm). Ce framework combine l'extraction de caractéristiques profondes, le raisonnement explicite, l'apprentissage par renforcement et l'optimisation génétique pour créer un système de trading robuste, explicable et adaptable.
+
+## Framework DECoT-RL-GA
+
+Le framework est composé de quatre modules principaux :
+
+1. **CNN+LSTM pour l'extraction de caractéristiques** : Extrait des caractéristiques pertinentes à partir des données de marché en utilisant un réseau de neurones hybride.
+
+2. **Chain-of-Thought (CoT) pour le raisonnement explicite** : Génère des explications claires et logiques pour les décisions de trading, transformant le système d'une "boîte noire" en un système transparent.
+
+3. **Reinforcement Learning (RL) pour l'entraînement de l'agent** : Utilise l'algorithme PPO pour apprendre à prendre des décisions de trading optimales à partir de l'expérience.
+
+4. **Genetic Algorithm (GA) pour l'optimisation des hyperparamètres** : Optimise automatiquement les hyperparamètres de tous les modules pour maximiser les performances de trading.
 
 ## Caractéristiques
 
-- **Capacité de raisonnement**: Explique les décisions de trading au lieu de faire des trades systématiques sans justification
-- **Analyse multi-sources**: Combine données de marché, sentiment des actualités et analyse technique
-- **Détection de régime de marché**: Identifie automatiquement les régimes de marché (haussier, baissier, latéral, volatile)
-- **Prédiction de SL/TP optimaux**: Recommande des niveaux de Stop Loss et Take Profit adaptés au contexte
-- **Intégration de Gemini API**: Analyse avancée du sentiment des actualités crypto
-- **CryptoBERT**: Utilise un modèle spécialisé pour l'analyse des textes liés aux crypto-monnaies
-- **Architecture hybride**: Combine réseaux de neurones, HMM et LLM pour des prédictions robustes
+- **Capacité de raisonnement explicite** : Explique les décisions de trading avec une chaîne de raisonnement logique
+- **Optimisation automatique** : Ajuste automatiquement les hyperparamètres pour s'adapter à différents marchés
+- **Rentabilité avec capital limité** : Conçu pour être rentable même avec un capital de moins de 20$
+- **Analyse multi-facteurs** : Combine données de marché, indicateurs techniques et caractéristiques extraites
+- **Gestion des risques intégrée** : Optimise le ratio risque/récompense pour chaque trade
+- **Architecture hybride** : Combine CNN, LSTM, RL et GA pour des performances optimales
 
 ## Installation
 
 ```bash
 # Cloner le dépôt
-git clone https://github.com/Cabrel10/eva001.git
-cd eva001
+git clone https://github.com/Cabrel10/morningstar.git
+cd morningstar
+
+# Créer et activer l'environnement conda
+conda create -n trading_env python=3.11
+conda activate trading_env
 
 # Installer les dépendances
-pip install -e .
+pip install -r trading_env_deps.txt
 ```
 
 ## Configuration
@@ -39,50 +54,57 @@ EXCHANGE_API_SECRET=votre_secret_api_exchange
 USE_MOCK_EXCHANGE=true
 ```
 
-## Workflow complet
+## Workflow du framework DECoT-RL-GA
 
-### 1. Collecte de données réelles
+### 1. Collecte et préparation des données
 
 ```bash
-python scripts/collect_real_data.py --output-dir data/real --start-date 2023-01-01 --end-date 2023-12-31 --symbols BTC/USDT ETH/USDT
+# Collecter les données de marché
+python scripts/collect_market_data.py --output-dir data/raw --start-date 2023-01-01 --end-date 2023-12-31 --symbols BTC/USDT ETH/USDT
+
+# Préparer les données pour l'entraînement
+python scripts/prepare_dataset.py --input data/raw/market_data.csv --output data/processed/prepared_data.csv
 ```
 
-Options disponibles:
-- `--gemini-api-keys`: Liste des clés API Gemini pour l'analyse de sentiment
-- `--timeframe`: Intervalle de temps (1d, 1h, etc.)
-- `--no-cryptobert`: Désactiver l'utilisation de CryptoBERT
-- `--no-hmm`: Désactiver la détection de régime HMM
-- `--no-sentiment`: Désactiver l'analyse de sentiment
-
-### 2. Préparation des données
+### 2. Optimisation des hyperparamètres avec GA (Module 4)
 
 ```bash
-python scripts/prepare_improved_dataset.py --input data/real/final_dataset.parquet --output data/processed/normalized/multi_crypto_dataset_prepared_normalized.csv
+# Exécuter l'optimisation génétique
+python scripts/optimize_hyperparams.py --data-path data/processed/prepared_data.csv --output-dir output/optimization --population-size 50 --generations 20
 ```
 
-### 3. Entraînement du modèle avec capacité de raisonnement
+Cette étape utilise l'algorithme génétique pour trouver les meilleurs hyperparamètres pour tous les modules du framework.
 
-#### Option 1: Entraînement local
+### 3. Entraînement de l'agent RL avec les meilleurs hyperparamètres (Module 3)
 
 ```bash
-python model/training/reasoning_training.py --data-path data/processed/normalized/multi_crypto_dataset_prepared_normalized.csv --output-dir model/reasoning_model
+# Entraîner l'agent avec les hyperparamètres optimisés
+python scripts/train_agent.py --data-path data/processed/prepared_data.csv --hyperparams-path output/optimization/best_hyperparams.json --output-dir output/trained_agent
 ```
 
-#### Option 2: Entraînement sur Google Colab
+Cette étape entraîne l'agent RL en utilisant les hyperparamètres optimisés par le Module 4.
 
-1. Ouvrez le notebook `notebooks/morningstar_reasoning_model_training.ipynb` dans Google Colab
-2. Suivez les instructions dans le notebook pour télécharger les données et entraîner le modèle
-
-### 4. Évaluation du modèle
+### 4. Génération d'explications avec CoT (Module 2)
 
 ```bash
-python improved_evaluate.py --model-path model/reasoning_model/best_model.h5 --data-path data/processed/normalized/multi_crypto_dataset_prepared_normalized.csv
+# Générer des explications pour les décisions de trading
+python scripts/generate_explanations.py --agent-path output/trained_agent/agent.zip --data-path data/test/test_data.csv --output-dir output/explanations
 ```
 
-### 5. Trading en temps réel
+Cette étape utilise le mécanisme Chain-of-Thought pour générer des explications pour les décisions de l'agent.
+
+### 5. Backtesting et évaluation
 
 ```bash
-python trading_bot.py --model-path model/reasoning_model/best_model.h5 --symbols BTC/USDT ETH/USDT
+# Évaluer les performances de l'agent
+python scripts/backtest.py --agent-path output/trained_agent/agent.zip --data-path data/test/test_data.csv --initial-balance 20.0 --output-dir output/backtest
+```
+
+### 6. Trading en temps réel
+
+```bash
+# Démarrer le trading en temps réel
+python scripts/live_trading.py --agent-path output/trained_agent/agent.zip --symbols BTC/USDT --initial-balance 20.0
 ```
 
 ## Structure du projet
@@ -94,10 +116,21 @@ Morningstar/
 │   ├── real/                  # Données réelles collectées
 │   └── processed/             # Données préparées pour l'entraînement
 │       └── normalized/        # Données normalisées
+├── docs/                      # Documentation du projet
+│   └── modules/               # Documentation des modules DECoT-RL-GA
+│       ├── framework_overview.md  # Vue d'ensemble du framework
+│       ├── module1.md         # Module 1: CNN+LSTM
+│       ├── module2.md         # Module 2: Chain-of-Thought
+│       ├── module3.md         # Module 3: Reinforcement Learning
+│       └── module4.md         # Module 4: Genetic Algorithm
+├── model/                     # Modèles et algorithmes
+│   ├── architecture/          # Architecture des modèles
+│   ├── reasoning/             # Mécanismes de raisonnement
+│   └── training/              # Modules d'entraînement
+│       ├── data_loader.py     # Chargement des données
+│       ├── reinforcement_learning.py  # Agent RL et environnement
+│       └── genetic_optimizer.py  # Optimisation génétique
 ├── data_collectors/           # Modules de collecte de données
-│   ├── market_data_collector.py  # Collecte des données de marché
-│   ├── news_collector.py      # Collecte des actualités crypto
-│   └── sentiment_analyzer.py  # Analyse de sentiment avec Gemini
 ├── data_processors/           # Modules de traitement de données
 │   ├── hmm_regime_detector.py # Détection de régime avec HMM
 │   └── cryptobert_processor.py # Traitement de texte avec CryptoBERT
