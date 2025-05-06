@@ -1,6 +1,6 @@
 {
-    "mean_reward": 4604.41455078125,
-    "std_reward": 13965.60546875,
-    "min_reward": -4339.7314453125,
-    "max_reward": 36143.31640625
+    "mean_reward": 486.20001220703125,
+    "std_reward": 203.38229370117188,
+    "min_reward": 270.0,
+    "max_reward": 852.0
 }

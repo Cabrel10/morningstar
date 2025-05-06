@@ -425,6 +425,33 @@ def test_train_best_agent():
     
     print("Test de train_best_agent réussi!")
 
+def test_cot_coherence():
+    """
+    Teste la cohérence des explications CoT.
+    """
+    print("\n=== Test de la cohérence des explications CoT ===")
+    
+    # Initialiser l'agent avec CoT activé
+    agent = create_rl_agent(use_cot=True)
+    
+    # Générer deux explications
+    market_data_sample = pd.DataFrame({
+        'timestamp': [1, 2, 3],
+        'open': [100, 101, 102],
+        'high': [101, 102, 103],
+        'low': [99, 100, 101],
+        'close': [100.5, 101.5, 102.5],
+        'volume': [1000, 2000, 3000]
+    })
+    expl1 = agent.generate_explanation(market_data_sample)
+    expl2 = agent.generate_explanation(market_data_sample)
+    
+    # Vérifier la cohérence
+    similarity = agent.calculate_explanation_similarity(expl1, expl2)
+    assert 0.7 <= similarity <= 1.0, "Les explications doivent être cohérentes"
+    
+    print("Test de la cohérence des explications CoT réussi!")
+
 def run_all_tests():
     """
     Exécute tous les tests.
@@ -441,6 +468,7 @@ def run_all_tests():
     test_evaluate_hyperparams()
     test_optimize_hyperparams()
     test_train_best_agent()
+    test_cot_coherence()
     
     print("\n=== Tous les tests du Module 4 ont réussi! ===")
 

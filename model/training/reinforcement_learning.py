@@ -26,6 +26,8 @@ import random
 import json
 import time
 from datetime import datetime
+from sklearn.metrics.pairwise import cosine_similarity
+from sentence_transformers import SentenceTransformer
 
 # Ajouter le répertoire du projet au PYTHONPATH
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -353,10 +355,15 @@ class TradingEnvironment(gym.Env):
         
         # 5. Récompense pour la cohérence des explications CoT
         cot_reward = 0
-        if self.use_cot and len(self.explanation_history) > 0:
-            # À implémenter: évaluer la cohérence des explications
-            # Cette partie pourrait utiliser une métrique basée sur le contenu des explications
-            cot_reward = 0  # Placeholder
+        if self.use_cot and len(self.explanation_history) >= 2:
+            current_expl = self.explanation_history[-1]
+            previous_expl = self.explanation_history[-2]
+            similarity = cosine_similarity(
+                get_embedding(current_expl),
+                get_embedding(previous_expl)
+            )
+            cot_reward = self.reward_weights['cot_coherence'] * similarity
+            cot_reward = np.clip(cot_reward, -1, 1)
         
         # Combiner toutes les récompenses selon les poids
         total_reward = (
@@ -1069,6 +1076,30 @@ def train_rl_agent(data_path, model_path, hybrid_model_path=None, use_cnn_lstm=T
     
     return agent, metrics, trades
 
+
+def get_embedding(text):
+    model = SentenceTransformer('all-MiniLM-L6-v2')
+    return model.encode(text)
+
+def create_rl_agent(env, use_cot=False):
+    """
+    Crée un agent RL avec intégration du raisonnement CoT si activé
+    """
+    if use_cot:
+        cot_module = ChainOfThoughtReasoning()
+        agent = TradingRLAgent(
+            env=env,
+            policy=CustomActorCriticPolicy,
+            reasoning_module=cot_module,
+            verbose=1
+        )
+    else:
+        agent = TradingRLAgent(
+            env=env,
+            policy=CustomActorCriticPolicy,
+            verbose=1
+        )
+    return agent
 
 if __name__ == "__main__":
     import argparse
