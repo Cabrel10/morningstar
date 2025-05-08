@@ -31,8 +31,9 @@ from sentence_transformers import SentenceTransformer
 
 # Ajouter le répertoire du projet au PYTHONPATH
 current_dir = os.path.dirname(os.path.abspath(__file__))
-base_dir = os.path.dirname(os.path.dirname(os.path.dirname(current_dir)))
-sys.path.append(base_dir)
+# project_root devrait être le dossier 'Morningstar'
+project_root = os.path.dirname(os.path.dirname(current_dir)) 
+sys.path.insert(0, project_root) # Insertion en priorité
 
 # Configuration du logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -89,11 +90,23 @@ class TradingEnvironment(gym.Env):
         assert len(price_data) == len(feature_data), "Les données de prix et de caractéristiques doivent avoir la même longueur"
         assert window_size > 0, "La taille de la fenêtre doit être positive"
         
+        # Filtrer les données où le prix de clôture est non positif
+        valid_indices = price_data['close'] > 0
+        if not valid_indices.all():
+            original_len = len(price_data)
+            price_data = price_data[valid_indices].copy()
+            feature_data = feature_data[valid_indices].copy()
+            logger.warning(f"Filtrage des données: {original_len - len(price_data)} lignes supprimées car close <= 0.")
+            # Réindexer pour éviter les trous potentiels si nécessaire (optionnel)
+            # price_data.reset_index(drop=True, inplace=True)
+            # feature_data.reset_index(drop=True, inplace=True)
+
         # Stocker les paramètres
         self.price_data = price_data
         self.feature_data = feature_data
         self.window_size = window_size
-        self.max_steps = max_steps if max_steps is not None else len(price_data) - window_size
+        # Recalculer max_steps après filtrage
+        self.max_steps = max_steps if max_steps is not None else len(self.price_data) - self.window_size 
         self.initial_balance = initial_balance
         self.transaction_fee = transaction_fee
         self.reward_weights = reward_weights or DEFAULT_REWARD_WEIGHTS
@@ -246,11 +259,16 @@ class TradingEnvironment(gym.Env):
         
         # Acheter si l'action est 1 et que nous n'avons pas de position
         if action == 1 and self.position == 0:
-            cost = current_price * (1 + self.transaction_fee)
-            # Vérifier si le capital est suffisant
-            if self.balance >= cost:
-                self.position = 1
-                self.position_price = current_price
+             # Vérifier si le prix actuel est valide
+            if current_price <= 0:
+                 logger.warning(f"Tentative d'achat à prix non positif ({current_price}) à l'étape {self.current_step}. Action ignorée.")
+                 executed_action = 0 # Ne rien faire si le prix est invalide
+            else:
+                cost = current_price * (1 + self.transaction_fee)
+                # Vérifier si le capital est suffisant
+                if self.balance >= cost:
+                    self.position = 1
+                    self.position_price = current_price # Prix est > 0 ici
                 self.balance -= cost
                 executed_action = 1
                 
@@ -270,9 +288,13 @@ class TradingEnvironment(gym.Env):
             self.position = 0
             executed_action = 2
             
-            # Calculer le P&L
-            pnl = ((revenue / self.position_price) - 1) * 100  # En pourcentage
-            
+            # Calculer le P&L (vérifier que position_price n'est pas zéro)
+            pnl = 0.0
+            if self.position_price != 0:
+                 pnl = ((revenue / self.position_price) - 1) * 100  # En pourcentage
+            else:
+                 logger.warning(f"Tentative de calcul de PNL avec position_price=0 à l'étape {self.current_step}")
+
             # Enregistrer le trade
             self.trades.append({
                 'step': self.current_step,
@@ -324,19 +346,31 @@ class TradingEnvironment(gym.Env):
             Récompense totale
         """
         # 1. Récompense basée sur le P&L
-        pnl_reward = 0
-        if self.position == 1:
+        pnl_reward = 0.0
+        if self.position == 1 and self.position_price != 0: # Ajout vérification != 0
             # Rendement non réalisé
             price_change_pct = (next_price / self.position_price) - 1
             pnl_reward = price_change_pct * 100
         
-        # 2. Récompense basée sur le ratio de Sharpe (si assez de données)
-        sharpe_reward = 0
-        if len(self.returns) > 10:
-            mean_return = np.mean(self.returns[-10:])
-            std_return = np.std(self.returns[-10:]) + 1e-5  # Éviter division par zéro
-            sharpe = (mean_return - self.risk_free_rate) / std_return
-            sharpe_reward = sharpe
+        # 2. Récompense basée sur le ratio de Sharpe (si assez de données valides)
+        sharpe_reward = 0.0
+        if len(self.returns) >= 10: # Assez de retours
+            recent_returns = np.array(self.returns[-10:])
+            finite_returns = recent_returns[np.isfinite(recent_returns)] # Filtrer NaN/inf
+            if len(finite_returns) >= 2: # Besoin d'au moins 2 points pour std dev
+                mean_return = np.mean(finite_returns)
+                std_return = np.std(finite_returns)
+            else:
+                mean_return = 0.0
+                std_return = 0.0 # Ou une autre valeur par défaut
+                logger.warning(f"NaN/inf détecté dans les retours récents à l'étape {self.current_step}. Sharpe non calculé.")
+                
+            # Vérifier si std_return est proche de zéro ou NaN
+            if std_return > 1e-8 and not np.isnan(std_return): 
+                sharpe = (mean_return - self.risk_free_rate) / std_return
+                sharpe_reward = np.clip(sharpe, -5, 5) # Clipper pour éviter valeurs extrêmes
+            else:
+                sharpe_reward = 0.0 # Pas de récompense si std est trop faible ou NaN
         
         # 3. Pénalité pour le drawdown
         drawdown_penalty = 0
@@ -346,25 +380,38 @@ class TradingEnvironment(gym.Env):
             drawdown_penalty = -drawdown * 100  # Négatif pour pénaliser
         
         # 4. Récompense pour la constance des gains
-        consistency_reward = 0
-        if len(self.returns) > 5:
-            # Moins de variance est meilleur
-            consistency_reward = 1 / (np.std(self.returns[-5:]) + 1e-5)
-            # Normaliser pour éviter des valeurs extrêmes
-            consistency_reward = np.clip(consistency_reward, 0, 10)
+        consistency_reward = 0.0
+        if len(self.returns) >= 5: # Assez de retours
+            recent_returns_consistency = np.array(self.returns[-5:])
+            finite_returns_consistency = recent_returns_consistency[np.isfinite(recent_returns_consistency)] # Filtrer NaN/inf
+            if len(finite_returns_consistency) >= 2: # Besoin d'au moins 2 points pour std dev
+                std_recent_returns = np.std(finite_returns_consistency)
+            else:
+                std_recent_returns = np.inf # Pour que la récompense soit 0
+                logger.warning(f"NaN/inf détecté dans les retours récents (consistance) à l'étape {self.current_step}. Constance non calculée.")
+
+            # Moins de variance est meilleur, éviter division par zéro ou NaN
+            if std_recent_returns > 1e-8 and not np.isnan(std_recent_returns):
+                consistency_reward = 1 / std_recent_returns 
+                # Normaliser/clipper pour éviter des valeurs extrêmes
+                consistency_reward = np.clip(consistency_reward, 0, 10) 
+            else:
+                 consistency_reward = 0.0 # Pas de récompense si std est trop faible ou NaN
         
-        # 5. Récompense pour la cohérence des explications CoT
-        cot_reward = 0
-        if self.use_cot and len(self.explanation_history) >= 2:
-            current_expl = self.explanation_history[-1]
-            previous_expl = self.explanation_history[-2]
-            similarity = cosine_similarity(
-                get_embedding(current_expl),
-                get_embedding(previous_expl)
-            )
-            cot_reward = self.reward_weights['cot_coherence'] * similarity
-            cot_reward = np.clip(cot_reward, -1, 1)
+        # 5. Récompense pour la cohérence des explications CoT (simplifié pour éviter dépendance externe ici)
+        cot_reward = 0.0
+        # if self.use_cot and len(self.explanation_history) >= 2:
+        #     # Note: get_embedding et cosine_similarity peuvent être coûteux et nécessitent SentenceTransformer
+        #     # Pour la robustesse, on pourrait utiliser une métrique plus simple ou désactiver temporairement
+        #     pass # Placeholder - à implémenter si nécessaire et stable
         
+        # S'assurer que toutes les composantes sont des nombres finis
+        pnl_reward = np.nan_to_num(pnl_reward, nan=0.0, posinf=0.0, neginf=0.0)
+        sharpe_reward = np.nan_to_num(sharpe_reward, nan=0.0, posinf=0.0, neginf=0.0)
+        drawdown_penalty = np.nan_to_num(drawdown_penalty, nan=0.0, posinf=0.0, neginf=0.0)
+        consistency_reward = np.nan_to_num(consistency_reward, nan=0.0, posinf=0.0, neginf=0.0)
+        cot_reward = np.nan_to_num(cot_reward, nan=0.0, posinf=0.0, neginf=0.0)
+
         # Combiner toutes les récompenses selon les poids
         total_reward = (
             self.reward_weights.get('pnl', 1.0) * pnl_reward +
@@ -374,7 +421,10 @@ class TradingEnvironment(gym.Env):
             self.reward_weights.get('cot_coherence', 0.2) * cot_reward
         )
         
-        return total_reward
+        # S'assurer que la récompense finale est un nombre fini
+        total_reward = np.nan_to_num(total_reward, nan=0.0, posinf=1e6, neginf=-1e6) # Remplacer inf par une grande valeur
+        
+        return float(total_reward) # Retourner un float standard
     
     def _get_observation(self):
         """
@@ -1081,25 +1131,25 @@ def get_embedding(text):
     model = SentenceTransformer('all-MiniLM-L6-v2')
     return model.encode(text)
 
-def create_rl_agent(env, use_cot=False):
-    """
-    Crée un agent RL avec intégration du raisonnement CoT si activé
-    """
-    if use_cot:
-        cot_module = ChainOfThoughtReasoning()
-        agent = TradingRLAgent(
-            env=env,
-            policy=CustomActorCriticPolicy,
-            reasoning_module=cot_module,
-            verbose=1
-        )
-    else:
-        agent = TradingRLAgent(
-            env=env,
-            policy=CustomActorCriticPolicy,
-            verbose=1
-        )
-    return agent
+# def create_rl_agent(env, use_cot=False):
+#     """
+#     Crée un agent RL avec intégration du raisonnement CoT si activé
+#     """
+#     if use_cot:
+#         cot_module = ChainOfThoughtReasoning() # Classe non définie
+#         agent = TradingRLAgent(
+#             env=env,
+#             policy=CustomActorCriticPolicy, # Classe non définie
+#             reasoning_module=cot_module,
+#             verbose=1
+#         )
+#     else:
+#         agent = TradingRLAgent(
+#             env=env,
+#             policy=CustomActorCriticPolicy, # Classe non définie
+#             verbose=1
+#         )
+#     return agent
 
 if __name__ == "__main__":
     import argparse

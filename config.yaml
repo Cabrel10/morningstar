@@ -1,0 +1,191 @@
+```yaml
+# config.yaml - Configuration complète pour Morningstar DECoT-RL-GA
+
+# -------------------------------
+# Chemins et fichiers
+# -------------------------------
+paths:
+  # Données d'entraînement enrichies (Parquet ou CSV)
+  data_train: "./data/crypto_dataset_complet.parquet"
+  data_val:   "./data/crypto_dataset_complet_val.parquet"
+  data_test:  "./data/crypto_dataset_complet_test.parquet"
+  # Modèles et sorties
+  output_dir:     "./output"
+  hybrid_model:   "${paths.output_dir}/hybrid_model.h5"
+  rl_agent_dir:   "${paths.output_dir}/rl_agent"
+  ga_results:     "${paths.output_dir}/ga/best_hyperparams.json"
+  logs_dir:       "${paths.output_dir}/logs"
+  backtest_results: "${paths.output_dir}/backtest"
+
+# -------------------------------
+# Données et prétraitement
+# -------------------------------
+data:
+  # Split temporel en pourcentages (train/val/test)
+  split_ratios:
+    train: 0.7
+    val:   0.15
+    test:  0.15
+  # Ou dates fixes
+  split_dates:
+    val_start: "2025-03-01"
+    test_start: "2025-04-01"
+  # Colonnes label et mappings
+  label_columns:
+    - future_signal
+    - future_return_5s
+  label_mappings:
+    future_signal:
+      -1: short
+       0: hold
+       1: long
+  # Normalisation
+  scaler: zscore  # options: zscore, minmax, robust
+  # Format de retour
+  as_tensor: false
+
+# -------------------------------
+# Architecture du modèle
+# -------------------------------
+model:
+  # Dimensions des entrées
+  window_size: 100
+  num_technical: 38
+  num_mcp:       10
+  num_llm:       768
+  num_hmm:       5
+  # Activer composants
+  use_cnn_lstm: true
+  use_chain_of_thought: true
+  use_llm: true
+  llm_fallback_strategy: "zeros"
+  # Active outputs
+  active_outputs:
+    - market_regime
+    - sl_tp
+  # Paramétrage Enhanced Hybrid
+  enhanced_hybrid:
+    mcp_input_shape: 10
+    technical_input_shape: 38
+    llm_input_shape: 768
+    instrument_input_shape: 5
+    hidden_units: 128
+    dropout_rate: 0.3
+  # Reasoning architecture
+  reasoning_architecture:
+    num_steps:    3       # nombre d'étapes Chain-of-Thought
+    attn_heads:   4
+    hidden_units: 128
+  reasoning_compile:
+    optimizer: adam
+    loss:
+      market_regime: sparse_categorical_crossentropy
+      sl_tp: huber_loss
+    metrics:
+      - accuracy
+      - mean_absolute_error
+
+# -------------------------------
+# Entraînement du modèle supervisé
+# -------------------------------
+training:
+  batch_size:       64
+  epochs:           50
+  learning_rate:    1e-3
+  validation_split: 0.2
+  checkpoint:       true
+  early_stopping:
+    monitor: val_loss
+    patience: 10
+
+# -------------------------------
+# Agent Reinforcement Learning (RL)
+# -------------------------------
+rl:
+  # Environnement
+  env:
+    initial_balance:    10000.0
+    commission_pct:     0.0005   # 0.05% par transaction
+    slippage_pct:       0.001    # 0.1% slippage
+    position_size:      0.02     # 2% du capital
+    stop_loss_pct:      0.005    # 0.5%
+    take_profit_pct:    0.01     # 1%
+    order_type:         limit    # options: market, limit, iceberg
+    cot_weight:         0.5      # poids du chain-of-thought
+    capital_management:
+      max_drawdown:     0.1     # 10%
+      trailing_stop_pct: 0.005
+  # PPO hyperparams
+  total_timesteps:   1000000
+  eval_freq:         10000
+  n_eval_episodes:   5
+  policy_kwargs:
+    net_arch: [256, 256]
+    activation_fn: relu
+  callbacks:
+    save_best: true
+    tensorboard: true
+    early_stop:
+      monitor: reward
+      patience: 5
+
+# -------------------------------
+# Algorithme génétique (GA)
+# -------------------------------
+ga:
+  population_size:  20
+  generations:      10
+  seed:             42
+  eval_timesteps:   50000
+  eval_episodes:    3
+  lr_range:         [1e-5, 1e-3]
+  n_steps_range:    [512, 4096]
+  batch_range:      [16, 256]
+  epochs_range:     [1, 10]
+  gamma_range:      [0.9, 0.9999]
+  gae_lambda_range: [0.8, 0.99]
+  clip_range:       [0.1, 0.3]
+  # Paramètres de trading à optimiser
+  position_size_range: [0.001, 0.05]
+  sl_pct_range:        [0.001, 0.02]
+  tp_pct_range:        [0.001, 0.05]
+  order_type_range:    [0, 2]  # 0=market,1=limit,2=iceberg
+  slippage_range:      [0.0, 0.005]
+  cot_weight_range:    [0.0, 1.0]
+
+# -------------------------------
+# Backtesting
+# -------------------------------
+backtest:
+  capital:          10000.0
+  commission_pct:   0.0005
+  slippage_pct:     0.001
+  stop_loss_pct:    0.005
+  take_profit_pct:  0.01
+  report_html:      true
+
+# -------------------------------
+# Live Trading
+# -------------------------------
+live:
+  exchange:           binance
+  symbol:             BTC/USDT
+  timeframe:          1s
+  reconnect_attempts: 5
+  poll_interval:      0.1  # en secondes
+  api_keys:
+    public_key:       "YOUR_PUBLIC_KEY"
+    secret_key:       "YOUR_SECRET_KEY"
+  risk_management:
+    max_positions:    3
+    max_exposure:     0.1
+
+# -------------------------------
+# Logging et monitoring
+# -------------------------------
+logging:
+  level:              INFO
+  format:             "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  tensorboard_log:    "${paths.logs_dir}/tensorboard"
+  log_to_file:        true
+```

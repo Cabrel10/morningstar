@@ -5,40 +5,14 @@ from pathlib import Path
 import yaml
 from sklearn.preprocessing import RobustScaler
 
+from config.config import Config # Importer la classe Config
+
 def load_data(file_path):
     """Charge les données prétraitées à partir d'un fichier Parquet."""
     return pd.read_parquet(file_path)
 
-def _preprocess_market_regime(data):
-    """Prétraite la colonne market_regime en appliquant le mapping de config.yaml."""
-    if 'market_regime' not in data.columns:
-        print("WARN: Colonne 'market_regime' manquante dans le dataset")
-        return data
-
-    # Charger la configuration
-    config_path = Path(__file__).parents[2] / 'config' / 'config.yaml'
-    with open(config_path, 'r') as file:
-        config = yaml.safe_load(file)
-
-    # Récupérer le mapping des régimes de marché
-    mapping = config.get('training', {}).get('label_mappings', {}).get('market_regime', {})
-    if not mapping:
-        print("WARN: Mapping des régimes de marché non trouvable dans config.yaml")
-        return data
-
-    print(f"INFO: Applique mapping market_regime: {mapping}")
-
-    # Appliquer le mapping
-    original_values = data['market_regime'].unique()
-    data['market_regime'] = data['market_regime'].map(lambda x: mapping.get(x, 0))  # Utiliser 0 (sideways) comme valeur par défaut au lieu de -1
-    
-    # Vérifier s'il y a des valeurs non mappées
-    new_values = data['market_regime'].unique()
-    unmapped = [val for val in original_values if val not in mapping and val != -1]
-    if unmapped:
-        print(f"WARN: Valeurs market_regime non mappées: {unmapped}")
-
-    return data
+# La fonction _preprocess_market_regime n'est plus nécessaire car le mapping
+# et le cast seront faits dans load_and_split_data directement sur le dictionnaire y_labels.
 
 def _convert_labels_to_tensors(data, label_columns, label_mappings):
     """Convertit les labels en tenseurs TensorFlow avec gestion des mappings."""
@@ -126,11 +100,10 @@ def load_and_split_data(file_path, label_columns=None, label_mappings=None, as_t
         # Mise à jour des labels par défaut selon les spécifications Agent 4
         label_columns = ['signal', 'volatility_quantiles', 'market_regime', 'sl_tp']
 
+    cfg = Config() # Charger la config pour accéder aux mappings
     data = load_data(file_path)
     
-    # Prétraiter la colonne market_regime pour la convertir en entiers
-    if 'market_regime' in data.columns and 'market_regime' in label_columns:
-        data = _preprocess_market_regime(data)
+    # Le prétraitement de market_regime est déplacé après l'extraction de y_labels
 
     # Vérification des colonnes de labels requises (celles qui ne sont pas 'sl_tp')
     required_label_cols = [col for col in label_columns if col != 'sl_tp']
@@ -145,16 +118,19 @@ def load_and_split_data(file_path, label_columns=None, label_mappings=None, as_t
     all_cols = set(data.columns)
 
     # 1. Identifier les colonnes LLM
-    llm_cols = sorted([col for col in all_cols if col.startswith('llm_')])
+    llm_cols = sorted([col for col in all_cols if col.startswith('bert_')]) # Modifié: llm_ -> bert_
 
     # 2. Identifier les colonnes MCP
     mcp_cols = sorted([col for col in all_cols if col.startswith('mcp_')])
 
     # 3. Identifier la colonne Instrument
     instrument_col = 'instrument_type' # Nom conventionnel
-    if instrument_col not in all_cols:
-        raise ValueError(f"Colonne '{instrument_col}' manquante pour l'input instrument.")
-    instrument_cols = [instrument_col] # Liste pour cohérence
+    instrument_cols = []
+    if instrument_col in all_cols:
+        instrument_cols = [instrument_col] # Liste pour cohérence
+        print(f"INFO: Colonne instrument '{instrument_col}' trouvée.")
+    else:
+        print(f"WARN: Colonne '{instrument_col}' non trouvée. L'input instrument ne sera pas généré.")
 
     # 4. Identifier les colonnes de labels sources (y compris celles pour sl_tp)
     # Utiliser les label_columns demandés + les sources potentielles pour sl_tp
@@ -164,7 +140,7 @@ def load_and_split_data(file_path, label_columns=None, label_mappings=None, as_t
 
     # 5. Déduire les colonnes techniques par exclusion
     # Ajouter les colonnes OHLCV de base et autres colonnes non-feature à exclure
-    base_cols_to_exclude = {'open', 'high', 'low', 'close', 'volume', 'trading_signal', 'volatility'}
+    base_cols_to_exclude = {'open', 'high', 'low', 'close', 'volume', 'trading_signal', 'volatility', 'news_snippets'} # Ajout de news_snippets
     
     # Identifier les colonnes HMM pour les extraire séparément
     hmm_cols = sorted([col for col in all_cols if col.startswith('hmm_')])
@@ -199,23 +175,41 @@ def load_and_split_data(file_path, label_columns=None, label_mappings=None, as_t
     print(f"Dimensions validées - Tech: {len(feature_cols)}, LLM: {len(llm_cols)}, MCP: {len(mcp_cols)}, Instrument: {len(instrument_cols)}")
 
     # --- Préparation des Données X et Y ---
-    x_technical_data = data[feature_cols].values.astype(np.float32)
-    x_llm_data = data[llm_cols].values.astype(np.float32)
-    x_mcp_data = data[mcp_cols].values.astype(np.float32)
-    # Pour l'instrument, on suppose qu'il contient des IDs entiers ou des catégories
-    # qui seront gérés par une couche Embedding dans le modèle.
-    # S'assurer qu'il est numérique ou le convertir si nécessaire.
-    # Pour l'instrument, convertir en codes entiers (factorize)
-    x_instrument_data, _ = pd.factorize(data[instrument_col])
-    x_instrument_data = x_instrument_data.astype(np.int64) # Assurer int64 pour TF
+    X_features = {}
 
-    # Préparer le dictionnaire X
-    X_features = {
-        "technical_input": x_technical_data,
-        "llm_input": x_llm_data,
-        "mcp_input": x_mcp_data,
-        "instrument_input": x_instrument_data
-    }
+    # Ajouter les features seulement si les colonnes correspondantes existent
+    if feature_cols:
+        x_technical_data = data[feature_cols].values.astype(np.float32)
+        X_features["technical_input"] = x_technical_data
+    
+    if llm_cols:
+        x_llm_data = data[llm_cols].values.astype(np.float32)
+        X_features["cryptobert_input"] = x_llm_data # Utilise cryptobert_input pour les colonnes bert_*
+        
+    if mcp_cols:
+        x_mcp_data = data[mcp_cols].values.astype(np.float32)
+        X_features["mcp_input"] = x_mcp_data
+        
+    if hmm_cols:
+        # S'assurer que les colonnes HMM sont numériques
+        hmm_data = data[hmm_cols].apply(pd.to_numeric, errors='coerce').fillna(0).values.astype(np.float32)
+        X_features["hmm_input"] = hmm_data
+        
+    if instrument_cols:
+        x_instrument_data, _ = pd.factorize(data[instrument_col])
+        X_features["instrument_input"] = x_instrument_data.astype(np.int64)
+        
+    # Ajouter d'autres inputs (sentiment, market) s'ils existent et sont traités
+    # Exemple (à adapter si ces colonnes existent) :
+    # sentiment_cols = sorted([col for col in all_cols if col.startswith('sentiment_')])
+    # if sentiment_cols:
+    #     x_sentiment_data = data[sentiment_cols].values.astype(np.float32)
+    #     X_features["sentiment_input"] = x_sentiment_data
+    # market_cols = sorted([col for col in all_cols if col.startswith('market_')])
+    # if market_cols:
+    #     x_market_data = data[market_cols].values.astype(np.float32)
+    #     X_features["market_input"] = x_market_data
+
 
     # Préparer le dictionnaire Y (labels)
     y_labels = {}
@@ -238,26 +232,79 @@ def load_and_split_data(file_path, label_columns=None, label_mappings=None, as_t
         y_labels = _convert_labels_to_tensors(data, label_columns, label_mappings)
     else:
         # Retourner Y comme Series/DataFrame pandas
-        y_labels = {col: data[col] for col in label_columns if col in data.columns and col != 'sl_tp'}
-        # Gérer sl_tp séparément: retourner les colonnes brutes, gérer NaN/inf
-        if 'sl_tp' in label_columns and 'level_sl' in data.columns and 'level_tp' in data.columns:
-            sl_tp_df = data[['level_sl', 'level_tp']].copy()
-            # Convertir en numérique et gérer NaN/inf
-            sl_tp_df['level_sl'] = pd.to_numeric(sl_tp_df['level_sl'], errors='coerce')
-            sl_tp_df['level_tp'] = pd.to_numeric(sl_tp_df['level_tp'], errors='coerce')
-            sl_tp_df.replace([np.inf, -np.inf], np.nan, inplace=True)
-            # Remplacer NaN par 0 (ou une autre stratégie si nécessaire)
-            # Log NaN count before filling
-            nan_count = sl_tp_df.isnull().sum().sum()
-            if nan_count > 0:
-                print(f"INFO: Found and filled {nan_count} NaN/inf values in raw SL/TP labels with 0.")
-            sl_tp_df.fillna(0, inplace=True)
-            y_labels['sl_tp'] = sl_tp_df # Return as DataFrame
+        y_labels = {}
+        for col in label_columns:
+             if col in data.columns:
+                 y_labels[col] = data[col]
+             elif col == 'sl_tp' and 'level_sl' in data.columns and 'level_tp' in data.columns:
+                 # Gérer sl_tp séparément: retourner les colonnes brutes, gérer NaN/inf
+                 sl_tp_df = data[['level_sl', 'level_tp']].copy()
+                 sl_tp_df['level_sl'] = pd.to_numeric(sl_tp_df['level_sl'], errors='coerce')
+                 sl_tp_df['level_tp'] = pd.to_numeric(sl_tp_df['level_tp'], errors='coerce')
+                 sl_tp_df.replace([np.inf, -np.inf], np.nan, inplace=True)
+                 nan_count = sl_tp_df.isnull().sum().sum()
+                 if nan_count > 0:
+                     print(f"INFO: Found and filled {nan_count} NaN/inf values in raw SL/TP labels with 0.")
+                 sl_tp_df.fillna(0, inplace=True)
+                 y_labels['sl_tp'] = sl_tp_df # Return as DataFrame
+             else:
+                 print(f"WARN: Colonne label '{col}' demandée mais non trouvée dans les données.")
 
-    # Ajouter l'entrée 'hmm_input' au dictionnaire de features
+        # Appliquer le mapping et caster en int32 pour les labels catégoriels
+        label_mappings_from_config = cfg.get_config('data.label_mappings', {})
+        for label_name, label_series in y_labels.items():
+            if label_name in label_mappings_from_config:
+                mapping = label_mappings_from_config[label_name]
+                print(f"INFO: Application du mapping pour '{label_name}': {mapping}")
+                # Assurer que les clés du mapping sont du même type que les valeurs de la série
+                try:
+                    # Tenter de convertir les clés du mapping en type de la série si nécessaire
+                    series_dtype = label_series.dtype
+                    if pd.api.types.is_numeric_dtype(series_dtype):
+                        safe_mapping = {type(label_series.iloc[0])(k): v for k, v in mapping.items()}
+                    else: # Si la série est object/string, les clés YAML devraient être ok
+                        safe_mapping = mapping
+                    
+                    mapped_series = label_series.map(safe_mapping)
+                    
+                    # Vérifier les NaN après le mapping
+                    nan_after_map = mapped_series.isnull().sum()
+                    if nan_after_map > 0:
+                         unmapped_values = label_series[mapped_series.isnull()].unique()
+                         print(f"WARN: {nan_after_map} valeurs de '{label_name}' n'ont pas pu être mappées: {list(unmapped_values)}. Elles seront remplacées par NaN puis 0.")
+                         mapped_series = mapped_series.fillna(0) # Remplacer NaN par 0 (ou une autre valeur par défaut)
+
+                    y_labels[label_name] = mapped_series.astype('int32') # Caster en int32
+                    print(f"INFO: Label '{label_name}' mappé et casté en int32.")
+
+                except Exception as e:
+                    print(f"ERREUR lors du mapping/cast de '{label_name}': {e}")
+                    print(f"       Mapping utilisé: {mapping}")
+                    print(f"       Premières valeurs de la série: {label_series.head().tolist()}")
+                    # Optionnel: lever l'erreur ou continuer avec les données non mappées/castées
+                    # raise e 
+            elif label_name == 'sl_tp':
+                 # Assurer que sl_tp est float32
+                 y_labels[label_name] = y_labels[label_name].astype('float32')
+                 print(f"INFO: Label '{label_name}' casté en float32.")
+            # Ajouter d'autres casts si nécessaire pour d'autres types de labels
+
+
+    # Conversion en Tensors si demandé (déplacé après la création complète de X_features)
+    # Le bloc dupliqué pour sl_tp a été supprimé ici. Le traitement se fait dans la boucle ci-dessus.
+
+    # Conversion en Tensors si demandé
     if as_tensor:
-        X_features['hmm_input'] = tf.convert_to_tensor(data[hmm_cols].values, dtype=tf.float32)
-    else:
-        X_features['hmm_input'] = data[hmm_cols].values
+        for key, value in X_features.items():
+            target_dtype = tf.int64 if key == "instrument_input" else tf.float32
+            try:
+                if target_dtype == tf.int64 and not np.issubdtype(value.dtype, np.integer):
+                     print(f"WARN: Tentative de conversion de {key} (dtype {value.dtype}) en int64 échouerait. Vérifier la factorisation.")
+                X_features[key] = tf.convert_to_tensor(value, dtype=target_dtype)
+            except Exception as e:
+                 print(f"Erreur conversion X['{key}'] (source dtype: {value.dtype}) en Tensor (target dtype={target_dtype}): {value[:5]}")
+                 raise e
+        y_labels = _convert_labels_to_tensors(data, label_columns, label_mappings)
+
 
     return X_features, y_labels

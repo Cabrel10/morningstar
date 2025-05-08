@@ -230,14 +230,24 @@ class ReasoningModule(Layer):
             name=f"{name}_reasoning_output" if name else None
         )
     
-    def call(self, inputs, training=False):
+    def call(self, inputs: Dict[str, tf.Tensor], training=False):
         # Appliquer les étapes de raisonnement séquentiellement
         reasoning_outputs = []
-        x = inputs
         
-        for step in self.reasoning_steps:
-            x = step(x, training=training)
-            reasoning_outputs.append(x)
+        # L'entrée initiale pour la première étape de raisonnement est 'features'
+        current_reasoning_input = inputs['features'] 
+        
+        # Si d'autres entrées contextuelles sont fournies (market_regime, sl_tp),
+        # elles pourraient être concaténées ou traitées spécifiquement ici si nécessaire.
+        # Pour l'instant, nous supposons que chaque ReasoningStep opère sur la sortie du précédent,
+        # en commençant par les features principales.
+
+        for step_module in self.reasoning_steps:
+            current_reasoning_input = step_module(current_reasoning_input, training=training)
+            reasoning_outputs.append(current_reasoning_input)
+        
+        # Le reste du code utilise la dernière sortie de raisonnement ou la collection
+        x = current_reasoning_input # La sortie de la dernière étape
         
         # Concaténer tous les raisonnements intermédiaires
         all_reasoning = tf.stack(reasoning_outputs, axis=1)

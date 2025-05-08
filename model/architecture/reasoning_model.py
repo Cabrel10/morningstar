@@ -18,14 +18,14 @@ from typing import Tuple, Dict, Optional, List, Any, Union
 from model.reasoning.reasoning_module import ReasoningModule
 
 def build_reasoning_model(
-    tech_input_shape: Tuple[int] = (44,),
-    llm_embedding_dim: int = 1,  
-    mcp_input_dim: int = 1,      
-    hmm_input_dim: int = 4,
-    sentiment_input_dim: int = 5,  
-    cryptobert_input_dim: int = 768,  
-    market_input_dim: int = 10,  
-    instrument_vocab_size: int = 10,
+    tech_input_shape: Optional[Tuple[int]] = None, # Rendu optionnel
+    # llm_embedding_dim: int = 1, # Supprimé, remplacé par cryptobert
+    mcp_input_dim: int = 0, # Défaut 0
+    hmm_input_dim: int = 0, # Défaut 0
+    sentiment_input_dim: int = 0, # Défaut 0
+    cryptobert_input_dim: int = 0, # Défaut 0
+    market_input_dim: int = 0, # Défaut 0
+    instrument_vocab_size: int = 0, # Défaut 0
     instrument_embedding_dim: int = 8,
     num_market_regime_classes: int = 2,  
     num_sl_tp_outputs: int = 2,
@@ -45,13 +45,13 @@ def build_reasoning_model(
     Construit un modèle Morningstar avec capacité de raisonnement.
     
     Args:
-        tech_input_shape: Shape des features techniques (44)
-        llm_embedding_dim: Dimension des embeddings LLM (768)
-        mcp_input_dim: Dimension des features MCP (128)
-        hmm_input_dim: Dimension des features HMM (régime + probas) (4)
-        sentiment_input_dim: Dimension des features de sentiment (5)
-        cryptobert_input_dim: Dimension des embeddings CryptoBERT (768)
-        market_input_dim: Dimension des features de marché (10)
+        tech_input_shape: Shape des features techniques (si > 0)
+        # llm_embedding_dim: Supprimé
+        mcp_input_dim: Dimension des features MCP (si > 0)
+        hmm_input_dim: Dimension des features HMM (si > 0)
+        sentiment_input_dim: Dimension des features de sentiment (si > 0)
+        cryptobert_input_dim: Dimension des embeddings CryptoBERT (si > 0)
+        market_input_dim: Dimension des features de marché (si > 0)
         instrument_vocab_size: Taille du vocabulaire des instruments
         instrument_embedding_dim: Dimension de l'embedding des instruments
         num_market_regime_classes: Nombre de classes pour le régime de marché
@@ -76,124 +76,96 @@ def build_reasoning_model(
         active_outputs = ['market_regime', 'sl_tp', 'reasoning']
     
     # 1. Définir les entrées
-    technical_input = Input(shape=tech_input_shape, name="technical_input")
-    llm_input = Input(shape=(llm_embedding_dim,), name="llm_input")
-    mcp_input = Input(shape=(mcp_input_dim,), name="mcp_input")
-    hmm_input = Input(shape=(hmm_input_dim,), name="hmm_input")
-    instrument_input = Input(shape=(1,), name="instrument_input", dtype="int32")
-    sentiment_input = Input(shape=(sentiment_input_dim,), name="sentiment_input")
-    cryptobert_input = Input(shape=(cryptobert_input_dim,), name="cryptobert_input")
-    market_input = Input(shape=(market_input_dim,), name="market_input")
-    
-    # 2. Traitement des features techniques
-    x_technical = Dense(
-        64, activation="relu",
-        kernel_regularizer=regularizers.l2(l2_reg),
-        name="technical_dense_1"
-    )(technical_input)
-    
-    if use_batch_norm:
-        x_technical = BatchNormalization(name="technical_bn_1")(x_technical)
-    
-    x_technical = Dropout(dropout_rate, name="technical_dropout_1")(x_technical)
-    
-    x_technical = Dense(
-        32, activation="relu",
-        kernel_regularizer=regularizers.l2(l2_reg),
-        name="technical_dense_2"
-    )(x_technical)
-    
-    # Traitement des embeddings LLM
-    x_llm = Dense(
-        32, activation="relu",
-        kernel_regularizer=regularizers.l2(l2_reg),
-        name="llm_dense_1"
-    )(llm_input)
-    
-    if use_batch_norm:
-        x_llm = BatchNormalization(name="llm_bn_1")(x_llm)
-    
-    x_llm = Dropout(dropout_rate, name="llm_dropout_1")(x_llm)
-    
-    # Traitement des features MCP
-    x_mcp = Dense(
-        32, activation="relu",
-        kernel_regularizer=regularizers.l2(l2_reg),
-        name="mcp_dense_1"
-    )(mcp_input)
-    
-    if use_batch_norm:
-        x_mcp = BatchNormalization(name="mcp_bn_1")(x_mcp)
-    
-    x_mcp = Dropout(dropout_rate, name="mcp_dropout_1")(x_mcp)
-    
-    # Traitement des features HMM
-    x_hmm = Dense(
-        16, activation="relu",
-        kernel_regularizer=regularizers.l2(l2_reg),
-        name="hmm_dense_1"
-    )(hmm_input)
-    
-    if use_batch_norm:
-        x_hmm = BatchNormalization(name="hmm_bn_1")(x_hmm)
-    
-    x_hmm = Dropout(dropout_rate, name="hmm_dropout_1")(x_hmm)
-    
-    # Traitement des features de sentiment
-    x_sentiment = Dense(
-        16, activation="relu",
-        kernel_regularizer=regularizers.l2(l2_reg),
-        name="sentiment_dense_1"
-    )(sentiment_input)
-    
-    if use_batch_norm:
-        x_sentiment = BatchNormalization(name="sentiment_bn_1")(x_sentiment)
-    
-    x_sentiment = Dropout(dropout_rate, name="sentiment_dropout_1")(x_sentiment)
-    
-    # Traitement des embeddings CryptoBERT
-    x_cryptobert = Dense(
-        64, activation="relu",
-        kernel_regularizer=regularizers.l2(l2_reg),
-        name="cryptobert_dense_1"
-    )(cryptobert_input)
-    
-    if use_batch_norm:
-        x_cryptobert = BatchNormalization(name="cryptobert_bn_1")(x_cryptobert)
-    
-    x_cryptobert = Dropout(dropout_rate, name="cryptobert_dropout_1")(x_cryptobert)
-    
-    x_cryptobert = Dense(
-        32, activation="relu",
-        kernel_regularizer=regularizers.l2(l2_reg),
-        name="cryptobert_dense_2"
-    )(x_cryptobert)
-    
-    # Traitement des features de marché
-    x_market = Dense(
-        32, activation="relu",
-        kernel_regularizer=regularizers.l2(l2_reg),
-        name="market_dense_1"
-    )(market_input)
-    
-    if use_batch_norm:
-        x_market = BatchNormalization(name="market_bn_1")(x_market)
-    
-    x_market = Dropout(dropout_rate, name="market_dropout_1")(x_market)
-    
-    # Embedding pour le type d'instrument
-    instrument_embedding = Embedding(
-        input_dim=instrument_vocab_size,
-        output_dim=instrument_embedding_dim,
-        name="instrument_embedding"
-    )(instrument_input)
-    instrument_embedding = Flatten(name="instrument_flatten")(instrument_embedding)
+    inputs_dict = {}
+    features_to_merge = []
+
+    # --- Technical Features ---
+    x_technical = None
+    if tech_input_shape and tech_input_shape[0] > 0:
+        technical_input = Input(shape=tech_input_shape, name="technical_input")
+        inputs_dict["technical_input"] = technical_input
+        x_technical = Dense(64, activation="relu", kernel_regularizer=regularizers.l2(l2_reg), name="technical_dense_1")(technical_input)
+        if use_batch_norm: x_technical = BatchNormalization(name="technical_bn_1")(x_technical)
+        x_technical = Dropout(dropout_rate, name="technical_dropout_1")(x_technical)
+        x_technical = Dense(32, activation="relu", kernel_regularizer=regularizers.l2(l2_reg), name="technical_dense_2")(x_technical)
+        features_to_merge.append(x_technical)
+    else:
+        print("INFO: build_reasoning_model - Skipping technical input branch as tech_input_shape is invalid or zero.")
+
+
+    # --- LLM Features (Supprimé, remplacé par CryptoBERT) ---
+
+    # --- MCP Features ---
+    x_mcp = None
+    if mcp_input_dim and mcp_input_dim > 0:
+        mcp_input = Input(shape=(mcp_input_dim,), name="mcp_input")
+        inputs_dict["mcp_input"] = mcp_input
+        x_mcp = Dense(32, activation="relu", kernel_regularizer=regularizers.l2(l2_reg), name="mcp_dense_1")(mcp_input)
+        if use_batch_norm: x_mcp = BatchNormalization(name="mcp_bn_1")(x_mcp)
+        x_mcp = Dropout(dropout_rate, name="mcp_dropout_1")(x_mcp)
+        features_to_merge.append(x_mcp)
+
+    # --- HMM Features ---
+    x_hmm = None
+    if hmm_input_dim and hmm_input_dim > 0:
+        hmm_input = Input(shape=(hmm_input_dim,), name="hmm_input")
+        inputs_dict["hmm_input"] = hmm_input
+        x_hmm = Dense(16, activation="relu", kernel_regularizer=regularizers.l2(l2_reg), name="hmm_dense_1")(hmm_input)
+        if use_batch_norm: x_hmm = BatchNormalization(name="hmm_bn_1")(x_hmm)
+        x_hmm = Dropout(dropout_rate, name="hmm_dropout_1")(x_hmm)
+        features_to_merge.append(x_hmm)
+
+    # --- Instrument Features ---
+    instrument_embedding = None
+    if instrument_vocab_size and instrument_vocab_size > 0 and instrument_embedding_dim > 0:
+        instrument_input = Input(shape=(1,), name="instrument_input", dtype="int32")
+        inputs_dict["instrument_input"] = instrument_input
+        instrument_embedding = Embedding(input_dim=instrument_vocab_size, output_dim=instrument_embedding_dim, name="instrument_embedding")(instrument_input)
+        instrument_embedding = Flatten(name="instrument_flatten")(instrument_embedding)
+        features_to_merge.append(instrument_embedding)
+
+    # --- Sentiment Features ---
+    x_sentiment = None
+    if sentiment_input_dim and sentiment_input_dim > 0:
+        sentiment_input = Input(shape=(sentiment_input_dim,), name="sentiment_input")
+        inputs_dict["sentiment_input"] = sentiment_input
+        x_sentiment = Dense(16, activation="relu", kernel_regularizer=regularizers.l2(l2_reg), name="sentiment_dense_1")(sentiment_input)
+        if use_batch_norm: x_sentiment = BatchNormalization(name="sentiment_bn_1")(x_sentiment)
+        x_sentiment = Dropout(dropout_rate, name="sentiment_dropout_1")(x_sentiment)
+        features_to_merge.append(x_sentiment)
+
+    # --- CryptoBERT Features ---
+    x_cryptobert = None
+    if cryptobert_input_dim and cryptobert_input_dim > 0:
+        # Utilise le nom d'input correspondant à la clé dans X_features
+        cryptobert_input = Input(shape=(cryptobert_input_dim,), name="cryptobert_input") 
+        inputs_dict["cryptobert_input"] = cryptobert_input
+        # Traitement des features CryptoBERT
+        x_cryptobert = Dense(64, activation="relu", kernel_regularizer=regularizers.l2(l2_reg), name="cryptobert_dense_1")(cryptobert_input)
+        if use_batch_norm: x_cryptobert = BatchNormalization(name="cryptobert_bn_1")(x_cryptobert)
+        x_cryptobert = Dropout(dropout_rate, name="cryptobert_dropout_1")(x_cryptobert)
+        x_cryptobert = Dense(32, activation="relu", kernel_regularizer=regularizers.l2(l2_reg), name="cryptobert_dense_2")(x_cryptobert)
+        features_to_merge.append(x_cryptobert)
+
+    # --- Market Features ---
+    x_market = None
+    if market_input_dim and market_input_dim > 0:
+        market_input = Input(shape=(market_input_dim,), name="market_input")
+        inputs_dict["market_input"] = market_input
+        x_market = Dense(32, activation="relu", kernel_regularizer=regularizers.l2(l2_reg), name="market_dense_1")(market_input)
+        if use_batch_norm: x_market = BatchNormalization(name="market_bn_1")(x_market)
+        x_market = Dropout(dropout_rate, name="market_dropout_1")(x_market)
+        features_to_merge.append(x_market)
+
+    # 2. Traitement des features (déjà fait ci-dessus)
     
     # 3. Fusion des features
-    merged_features = Concatenate(name="merged_features")(
-        [x_technical, x_llm, x_mcp, x_hmm, instrument_embedding, 
-         x_sentiment, x_cryptobert, x_market]  
-    )
+    if len(features_to_merge) == 0:
+        raise ValueError("Aucune feature à fusionner. Vérifiez les dimensions d'entrée dans la configuration.")
+    elif len(features_to_merge) == 1:
+        merged_features = features_to_merge[0]
+    else:
+        merged_features = Concatenate(name="merged_features")(features_to_merge)
     
     # 4. Couches partagées
     x = Dense(128, activation='relu', kernel_regularizer=regularizers.l2(l2_reg), name='shared_dense1')(merged_features)
@@ -239,9 +211,8 @@ def build_reasoning_model(
             for i, step in enumerate(reasoning_outputs['reasoning_steps']):
                 outputs[f'reasoning_step_{i}'] = step
             
-            # Ajouter une sortie pour l'explication textuelle (sera générée lors de l'inférence)
-            # Cette sortie n'est pas utilisée pour l'entraînement mais sert de placeholder
-            outputs['cot_explanation'] = tf.zeros((1, 1), name='cot_explanation')
+            # L'explication textuelle sera générée post-entraînement via ExplanationDecoder
+            # outputs['cot_explanation'] = tf.zeros((1, 1), name='cot_explanation') # Ligne supprimée
     else:
         outputs = {}
     
@@ -265,19 +236,8 @@ def build_reasoning_model(
             outputs['tp_explanation'] = reasoning_outputs['tp_explanation']
     
     # 7. Création du modèle
-    inputs = {
-        "technical_input": technical_input,
-        "llm_input": llm_input,
-        "mcp_input": mcp_input,
-        "hmm_input": hmm_input,
-        "instrument_input": instrument_input,
-        "sentiment_input": sentiment_input,  
-        "cryptobert_input": cryptobert_input,
-        "market_input": market_input
-    }
-    
     model = Model(
-        inputs=inputs,
+        inputs=inputs_dict, # Utiliser le dictionnaire d'inputs créé dynamiquement
         outputs=outputs,
         name='morningstar_reasoning_model'
     )
