@@ -29,7 +29,7 @@ def parse_args():
     parser.add_argument(
         "--coinmarketcap-api-key",
         type=str,
-        default="0853fffa-27e7-45c7-b549-5e857416275f",
+        default="api",
         help="Clu00e9 API CoinMarketCap"
     )
     parser.add_argument(
