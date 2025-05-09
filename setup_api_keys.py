@@ -35,19 +35,19 @@ def parse_args():
     parser.add_argument(
         "--google-api-key-1",
         type=str,
-        default="AIzaSyD6NcyTvM73dLJupxS5NFGvv5AtaWhbifU",
+        default="api",
         help="Clu00e9 API Google 1"
     )
     parser.add_argument(
         "--google-api-key-2",
         type=str,
-        default="AIzaSyCH9ocKRxb_4l7AcdKbzPJAAV1xZ1s-tMQ",
+        default="api",
         help="Clu00e9 API Google 2"
     )
     parser.add_argument(
         "--google-api-key-3",
         type=str,
-        default="AIzaSyAW7_-kTU1EH8dMXv0oBeDt49mH6lmkZhg",
+        default="api",
         help="Clu00e9 API Google 3"
     )
     parser.add_argument(
