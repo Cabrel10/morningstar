@@ -23,10 +23,10 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Configuration Gemini API
-GEMINI_API_KEY = "AIzaSyD6NcyTvM73dLJupxS5NFGvv5AtaWhbifU"
+GEMINI_API_KEY = "api"
 GEMINI_API_BACKUP_KEYS = [
-    "AIzaSyCH9ocKRxb_4l7AcdKbzPJAAV1xZ1s-tMQ",
-    "AIzaSyAW7_-kTU1EH8dMXv0oBeDt49mH6lmkZhg"
+    "Api",
+    "Api"
 ]
 
 def setup_gemini_api():
