@@ -1,0 +1,31 @@
+{
+  "backbone_config": {
+    "dense_units": 64,
+    "lstm_units": 32,
+    "transformer_blocks": 1,
+    "transformer_heads": 2,
+    "transformer_dim": 32,
+    "dropout_rate": 0.2
+  },
+  "head_config": {
+    "signal": {
+      "dense_units": 32,
+      "classes": 3
+    },
+    "sl_tp": {
+      "dense_units": 16,
+      "outputs": 2
+    }
+  },
+  "active_outputs": [
+    "signal",
+    "sl",
+    "tp"
+  ],
+  "tech_input_shape": [
+    43
+  ],
+  "embeddings_input_shape": 1,
+  "mcp_input_shape": 10,
+  "instrument_vocab_size": 4
+}

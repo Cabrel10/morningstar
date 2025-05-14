@@ -1,0 +1,22 @@
+Matrice de confusion:
+[[511  47 201]
+ [362  64 336]
+ [ 40  22 720]]
+
+Rapport de classification:
+              precision    recall  f1-score   support
+
+           0       0.56      0.67      0.61       759
+           1       0.48      0.08      0.14       762
+           2       0.57      0.92      0.71       782
+
+    accuracy                           0.56      2303
+   macro avg       0.54      0.56      0.49      2303
+weighted avg       0.54      0.56      0.49      2303
+
+
+loss: 1.3348972797393799
+signal_output_loss: 0.8518801331520081
+sl_tp_output_loss: 0.05906793847680092
+signal_output_accuracy: 0.5623100399971008
+sl_tp_output_mean_absolute_error: 0.19457188248634338

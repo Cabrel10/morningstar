@@ -1,0 +1,97 @@
+name: Morningstar CI
+
+on:
+  push:
+    branches: [ main, master, develop, feature/monolith ] # Ajout des branches develop et feature/monolith
+  pull_request:
+    branches: [ main, master, develop ] # Ajout de la branche develop pour les PR
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11"] # Test sur plusieurs versions de Python
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v3
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        if [ -f requirements-dev.txt ]; then pip install -r requirements-dev.txt; fi
+        pip install pytest pytest-cov pytest-asyncio # Assurer que pytest-asyncio est là pour les tests async
+
+    - name: Run linters (Flake8 and Black)
+      run: |
+        pip install flake8 black
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics --exclude=build,__pycache__
+        # Stop a build si black trouve des fichiers à reformater.
+        black --check . --exclude=build
+
+    - name: Run tests with coverage
+      run: |
+        pytest --cov=./ --cov-report=xml --cov-report=term-missing -q tests/
+
+    - name: Run monolith model tests
+      run: |
+        # Exécuter spécifiquement les tests du modèle monolithique
+        pytest -xvs ultimate/tests/test_monolith_model.py ultimate/tests/test_inference_monolith.py
+
+    - name: Upload coverage reports to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }} # Optionnel: si vous utilisez un token Codecov privé
+        files: ./coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: true
+        verbose: true
+
+    - name: Upload coverage to GitHub Actions Artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: coverage-report-${{ matrix.python-version }}
+        path: coverage.xml
+        if-no-files-found: error # Optionnel: échouer si le fichier n'est pas trouvé
+
+  build-and-push-docker:
+    needs: test # S'assurer que les tests passent avant de construire l'image
+    runs-on: ubuntu-latest
+    # Exécuter cette tâche uniquement sur les push vers la branche principale
+    # et si les secrets Docker Hub sont configurés
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && secrets.DOCKERHUB_USERNAME != ''
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v2
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+
+    - name: Login to Docker Hub
+      uses: docker/login-action@v2
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        file: ./Dockerfile
+        push: true
+        tags: ${{ secrets.DOCKERHUB_USERNAME }}/morningstar-crypto-bot:latest # Adaptez le nom de l'image
+        # Ajouter des tags plus spécifiques comme la version ou le hash du commit est une bonne pratique
+        # tags: |
+        #   ${{ secrets.DOCKERHUB_USERNAME }}/morningstar-crypto-bot:latest
+        #   ${{ secrets.DOCKERHUB_USERNAME }}/morningstar-crypto-bot:${{ github.sha }}
+        #   ${{ secrets.DOCKERHUB_USERNAME }}/morningstar-crypto-bot:1.0.0 # Exemple de version

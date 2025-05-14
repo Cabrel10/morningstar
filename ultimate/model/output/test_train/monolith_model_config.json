@@ -1,0 +1,45 @@
+{
+  "tech_input_shape": [
+    43
+  ],
+  "embeddings_input_shape": 1,
+  "mcp_input_shape": 10,
+  "instrument_vocab_size": 4,
+  "instrument_embedding_dim": 8,
+  "sequence_length": null,
+  "use_lstm": true,
+  "use_transformer": true,
+  "backbone_config": {
+    "dense_units": 64,
+    "lstm_units": 32,
+    "transformer_blocks": 1,
+    "transformer_heads": 2,
+    "transformer_dim": 32,
+    "ff_dim": 128,
+    "dropout_rate": 0.2
+  },
+  "head_config": {
+    "signal": {
+      "units": [
+        32
+      ],
+      "classes": 3,
+      "dense_units": 32
+    },
+    "sl_tp": {
+      "units": [
+        32
+      ],
+      "outputs": 2,
+      "dense_units": 16
+    }
+  },
+  "l2_reg": 0.001,
+  "dropout_rate": 0.3,
+  "use_batch_norm": true,
+  "active_outputs": [
+    "signal",
+    "sl",
+    "tp"
+  ]
+}
