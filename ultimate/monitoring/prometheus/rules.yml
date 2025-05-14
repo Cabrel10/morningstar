@@ -1,0 +1,56 @@
+groups:
+  - name: morningstar_alerts
+    rules:
+      - alert: HighLatency
+        expr: histogram_quantile(0.95, sum(rate(morningstar_prediction_latency_milliseconds_bucket[5m])) by (le)) > 200
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Haute latence de prédiction"
+          description: "La latence p95 des prédictions est supérieure à 200ms depuis 5 minutes."
+          
+      - alert: CriticalLatency
+        expr: histogram_quantile(0.95, sum(rate(morningstar_prediction_latency_milliseconds_bucket[5m])) by (le)) > 500
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Latence critique de prédiction"
+          description: "La latence p95 des prédictions est supérieure à 500ms depuis 2 minutes."
+          
+      - alert: HighDrawdown
+        expr: morningstar_drawdown_percentage > 5
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Drawdown élevé"
+          description: "Le drawdown actuel est de {{ $value }}%, dépassant le seuil d'avertissement de 5%."
+          
+      - alert: CriticalDrawdown
+        expr: morningstar_drawdown_percentage > 10
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Drawdown critique"
+          description: "Le drawdown actuel est de {{ $value }}%, dépassant le seuil critique de 10%."
+          
+      - alert: HighErrorRate
+        expr: sum(increase(morningstar_model_errors[5m])) > 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Taux d'erreur élevé"
+          description: "Plus de 5 erreurs de modèle ont été enregistrées au cours des 5 dernières minutes."
+          
+      - alert: NoTrading
+        expr: sum(increase(morningstar_trades_executed[1h])) == 0
+        for: 1h
+        labels:
+          severity: warning
+        annotations:
+          summary: "Aucun trade exécuté"
+          description: "Aucun trade n'a été exécuté au cours de la dernière heure." 

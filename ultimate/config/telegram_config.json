@@ -1,0 +1,87 @@
+{
+    "bot_token": "BOT_TOKEN_PLACEHOLDER",
+    "chat_id": "CHAT_ID_PLACEHOLDER",
+    "notify_trades": true,
+    "notify_signals": true,
+    "notify_errors": true,
+    "notify_performance": true,
+    "performance_interval": "1h",
+    "alerts": {
+        "drawdown": {
+            "warning_threshold": 5.0,
+            "critical_threshold": 10.0,
+            "cool_down_minutes": 30
+        },
+        "latency": {
+            "warning_threshold_ms": 200,
+            "critical_threshold_ms": 500,
+            "sample_window_minutes": 5,
+            "cool_down_minutes": 15
+        },
+        "errors": {
+            "count_threshold": 5,
+            "window_minutes": 5,
+            "cool_down_minutes": 15
+        },
+        "equity": {
+            "daily_loss_threshold_percent": 3.0,
+            "cool_down_minutes": 120
+        }
+    },
+    "commands": {
+        "status": {
+            "enabled": true,
+            "description": "Affiche l'état actuel du système"
+        },
+        "pause": {
+            "enabled": true,
+            "description": "Met en pause le trading",
+            "requires_confirmation": true
+        },
+        "resume": {
+            "enabled": true,
+            "description": "Reprend le trading après une pause",
+            "requires_confirmation": true
+        },
+        "position": {
+            "enabled": true,
+            "description": "Affiche les positions actuelles"
+        },
+        "balance": {
+            "enabled": true,
+            "description": "Affiche le solde actuel"
+        },
+        "performance": {
+            "enabled": true,
+            "description": "Affiche les performances",
+            "params": [
+                {
+                    "name": "period",
+                    "description": "Période (1h, 1d, 1w, all)",
+                    "default": "1d"
+                }
+            ]
+        },
+        "close_all": {
+            "enabled": true,
+            "description": "Ferme toutes les positions (urgence)",
+            "requires_confirmation": true
+        },
+        "shutdown": {
+            "enabled": true,
+            "description": "Arrête le système proprement",
+            "requires_confirmation": true,
+            "allowed_users": ["ADMIN_USER_ID_PLACEHOLDER"]
+        }
+    },
+    "message_templates": {
+        "trade_opened": "🔔 *Nouvelle position ouverte*\\n*Symbole:* {symbol}\\n*Direction:* {direction}\\n*Prix d'entrée:* {entry_price}\\n*Taille:* {size}\\n*Stop Loss:* {sl_price}\\n*Take Profit:* {tp_price}",
+        "trade_closed": "✅ *Position fermée*\\n*Symbole:* {symbol}\\n*Direction:* {direction}\\n*Profit:* {profit} ({profit_percent}%)\\n*Raison:* {reason}",
+        "sl_hit": "⚠️ *Stop Loss atteint*\\n*Symbole:* {symbol}\\n*Direction:* {direction}\\n*Perte:* {loss} ({loss_percent}%)",
+        "tp_hit": "💰 *Take Profit atteint*\\n*Symbole:* {symbol}\\n*Direction:* {direction}\\n*Profit:* {profit} ({profit_percent}%)",
+        "error": "🚨 *Erreur*\\n*Type:* {error_type}\\n*Composant:* {component}\\n*Message:* {message}",
+        "drawdown_warning": "⚠️ *Alerte drawdown*\\nLe drawdown actuel est de {drawdown}%, dépassant le seuil d'avertissement de {threshold}%",
+        "drawdown_critical": "🚨 *ALERTE CRITIQUE: DRAWDOWN ÉLEVÉ*\\nLe drawdown actuel est de {drawdown}%, dépassant le seuil critique de {threshold}%",
+        "performance_report": "📊 *Rapport de performance ({period})*\\n*Équité:* {equity} ({equity_percent}%)\\n*Trades:* {trades}\\n*Gagnants:* {winners} ({win_rate}%)\\n*SL Hit Rate:* {sl_rate}%\\n*TP Hit Rate:* {tp_rate}%\\n*Drawdown Max:* {max_drawdown}%"
+    }
+} 

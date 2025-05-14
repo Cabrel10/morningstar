@@ -1,0 +1,80 @@
+version: '3.8'
+
+services:
+  monolith:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: morningstar-monolith:staging
+    container_name: morningstar-monolith-staging
+    command: ultimate.scripts.run_live --testnet
+    environment:
+      - PYTHONPATH=/app
+      - LOG_LEVEL=INFO
+      - EXCHANGE_API_KEY=${EXCHANGE_API_KEY:-testnet_key}
+      - EXCHANGE_API_SECRET=${EXCHANGE_API_SECRET:-testnet_secret}
+      - USE_TESTNET=true
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
+      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID:-}
+    ports:
+      - "8000:8000"  # API REST
+      - "8888:8888"  # Prometheus metrics
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./ultimate/monitoring/metrics:/app/ultimate/monitoring/metrics
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    networks:
+      - morningstar-network
+
+  prometheus:
+    image: prom/prometheus:v2.36.0
+    container_name: morningstar-prometheus
+    volumes:
+      - ./ultimate/monitoring/prometheus:/etc/prometheus
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    ports:
+      - "9090:9090"
+    restart: unless-stopped
+    depends_on:
+      - monolith
+    networks:
+      - morningstar-network
+
+  grafana:
+    image: grafana/grafana:9.3.6
+    container_name: morningstar-grafana
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./ultimate/monitoring/grafana_dashboards:/etc/grafana/provisioning/dashboards
+      - ./ultimate/monitoring/grafana_datasources:/etc/grafana/provisioning/datasources
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+    networks:
+      - morningstar-network
+
+networks:
+  morningstar-network:
+    driver: bridge
+
+volumes:
+  prometheus_data:
+  grafana_data: 
